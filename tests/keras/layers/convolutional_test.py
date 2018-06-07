@@ -19,8 +19,8 @@ else:
 
 
 @keras_test
-@pytest.mark.skipif((K.backend() == 'cntk' or K.backend() == 'mxnet'),
-                    reason='cntk/mxnet do not support Causal padding in conv1d')
+@pytest.mark.skipif((K.backend() == 'cntk'),
+                    reason='cntk does not support Causal padding in conv1d')
 def test_causal_dilated_conv():
     # Causal:
     layer_test(convolutional.Conv1D,
@@ -72,8 +72,9 @@ def test_conv_1d():
     input_dim = 2
     kernel_size = 3
     filters = 3
+    paddings = _convolution_paddings + ['causal'] if K.backend() == 'mxnet' else _convolution_paddings
 
-    for padding in _convolution_paddings:
+    for padding in paddings:
         for strides in [1, 2]:
             if padding == 'same' and strides != 1:
                 continue

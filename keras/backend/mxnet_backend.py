@@ -3044,8 +3044,11 @@ def conv1d(x, kernel, strides=1, padding='valid',
 
     # Causal requires temporal padding.
     # MXNet backend does not support temporal padding on 3D tensor.
-    if padding is 'causal':
-        raise ValueError('MXNet Backend: conv1d does not support "causal" padding mode')
+    kernel_shape = kernel.shape
+    if padding == 'causal':
+        pad = dilation_rate * (kernel_shape[0] - 1)
+        x = temporal_padding(x, (pad, 0))
+        padding = 'valid'
 
     if padding not in {'same', 'valid'}:
         raise ValueError('MXNet Backend: `padding` should be either `same` or `valid`.')
