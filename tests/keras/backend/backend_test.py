@@ -985,7 +985,6 @@ class TestBackend(object):
         input_shape = (4, 8, 2)
         kernel_shape = (3, 2, 3)
 
-        # MXNet backend does not support conv1d yet.
         for strides in [1, 2]:
             check_two_tensor_operation('conv1d', input_shape, kernel_shape,
                                        BACKENDS, cntk_dynamicity=True,

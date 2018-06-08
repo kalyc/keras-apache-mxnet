@@ -72,7 +72,7 @@ def test_conv_1d():
     input_dim = 2
     kernel_size = 3
     filters = 3
-    paddings = _convolution_paddings + ['causal'] if K.backend() == 'mxnet' else _convolution_paddings
+    paddings = _convolution_paddings + ['causal'] if K.backend() != 'theano' else _convolution_paddings
 
     for padding in paddings:
         for strides in [1, 2]:

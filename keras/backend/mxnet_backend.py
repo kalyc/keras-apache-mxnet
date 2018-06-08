@@ -3042,16 +3042,19 @@ def conv1d(x, kernel, strides=1, padding='valid',
         data_format = image_data_format()
     _validate_data_format(data_format)
 
+    if padding not in {'same', 'valid', 'causal'}:
+        raise ValueError('MXNet Backend: `padding` should be either `same`, `valid` or `causal`.')
+
     # Causal requires temporal padding.
     # MXNet backend does not support temporal padding on 3D tensor.
+    assert ndim(x) == 3
+
+    # Add temporal padding
     kernel_shape = kernel.shape
     if padding == 'causal':
         pad = dilation_rate * (kernel_shape[0] - 1)
         x = temporal_padding(x, (pad, 0))
         padding = 'valid'
-
-    if padding not in {'same', 'valid'}:
-        raise ValueError('MXNet Backend: `padding` should be either `same` or `valid`.')
 
     if hasattr(x, '_keras_shape'):
         shape = x._keras_shape
