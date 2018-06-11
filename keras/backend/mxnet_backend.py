@@ -3811,8 +3811,6 @@ class KerasSymbol(object):
             in_slice = (in_slice,)
         for i in in_slice:
             if isinstance(i, int):
-               # if i < 0:
-                #    mx.sym.slice_axis(in_slice, axis=abs(i), begin=i, end=i+1)
                 begin.append(i)
                 end.append(i + 1)
             elif isinstance(i, slice):
