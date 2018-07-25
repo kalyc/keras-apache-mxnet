@@ -4567,6 +4567,40 @@ def _poolnd(x, name, pool_size, strides, padding_mode='valid',
     return result
 
 
+def get_mxnet_model_info(model):
+    """Get native MXNet model details for given Keras Model.
+    `data_names` and `data_shapes` are returned that can be used to bind the model in MXNet Module.
+    `data_names` and `data_shapes` represents input layer name and shape.
+    You can change the first dimension of data_shapes to match batch size for inference.
+
+    Note: You should use `save_mxnet_model()` API for saving the model in native MXNet model format.
+
+    # Arguments
+        model: Keras model instance from which to extract MXNet model details.
+
+    # Returns
+        data_names, data_shapes
+
+    # Raises
+        AssertionError if Model is not compiled.
+    """
+    assert model is not None, 'MXNet Backend: Invalid state. Model cannot be None.'
+
+    # Underlying MXNet model for Inference in native MXNet engine.
+    symbol = model._pred_mxnet_symbol
+    module = model._module
+
+    assert symbol is not None, 'MXNet Backend: Invalid state. MXNet Symbol cannot be None.'
+    assert module is not None, 'MXNet Backend: Invalid state. MXNet Module cannot be None.'
+
+    # Get Module Input data_names and data_shapes.
+    # This info will be useful for users to easily bind the exported model in MXNet.
+    pred_module = module._buckets['pred']
+    data_names = pred_module.data_names
+    data_shapes = pred_module.data_shapes
+    return data_names, data_shapes
+
+
 def get_model():
     """Prepares Model class that can be used for training a Keras model with MXNet backend.
     Inherits and extends keras.engine.Model class.
