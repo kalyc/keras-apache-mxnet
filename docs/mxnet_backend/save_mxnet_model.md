@@ -7,7 +7,8 @@
 3. [Checkpoint MXNet model using MXNetModelCheckpoint callback](#checkpoint-mxnet-model-using-mxnetmodelcheckpoint-callback)
 4. [Train and Save a Convolutional Neural Network (CNN) Model for MNIST Dataset](#train-and-save-a-convolutional-neural-network-cnn-model-for-mnist-dataset)
 5. [Import the model in MXNet for Inference](#import-the-model-in-mxnet-for-inference)
-6. [References](#references)
+6. [What's next](#whats-next)
+7. [References](#references)
 
 ## Objective
 
@@ -229,6 +230,11 @@ print("Actual - ", labels[idx])
 That's it! We trained a CNN model with Keras interface and used MXNet native engine in Python for inference. Also 
 note that we can use any language binding supported by MXNet (Scala/Python/Julia/C++/R/Perl) for inference based on your 
 production environment setup and requirements.
+
+## What's next
+After you save a MXNet model, checkout our blog posts on how to use it with [MXNet Model Server](https://github.com/awslabs/mxnet-model-server) and [MXNet Scala Infer API](https://mxnet.incubator.apache.org/api/scala/infer.html)
+1. [Deploy a Smile Detector with Keras MXNet and MXNet Model Server](https://medium.com/apache-mxnet/deploy-a-smile-detector-with-keras-mxnet-and-mxnet-model-server-48cd9741b6d2)
+2. [Train using Keras MXNet and Inference using MXNet Scala API](https://medium.com/apache-mxnet/train-using-keras-mxnet-and-inference-using-mxnet-scala-api-49476a16a46a)
 
 ## References
 1. [MXNet Module](https://mxnet.incubator.apache.org/api/python/module/module.html)

@@ -123,7 +123,7 @@ def test_conv_1d():
                kwargs={'filters': filters,
                        'kernel_size': kernel_size,
                        'data_format': 'channels_first'},
-               input_shape=input_shape)
+               input_shape=(batch_size, input_dim, steps))
 
 
 @keras_test

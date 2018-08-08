@@ -8,32 +8,21 @@ phases:
       git checkout master;
       echo "Installing MXNet";
       apt-get update;
-      apt-get install -y curl libgfortran3;
       pip install --upgrade pip;
-      pip install -U mxnet;
-      apt-get install libhdf5-dev;
-      pip install -U h5py;
-      pip install -U nose;
-      pip install -U pillow;
+      pip install mxnet-mkl;
       echo "Installing Tensorflow";
-      pip install -U tensorflow;
+      pip install tensorflow;
       echo "Installing Theano";
-      pip install -U theano;
-      apt-get install -y openmpi-bin;
-      echo "Installing Keras Test Dependencies";
-      pip install -U pytest;
-      pip install -U pytest-pep8;
-      pip install -U pytest-xdist;
-      pip install -U pytest-cov;
-      pip install -e ./[tests];
-      pip install -U keras_applications;
-      pip install -U keras_preprocessing;
+      pip install theano;
+      pip install pillow;
+      echo "Installing Keras from source";
+      pip install -e .[visualize,tests];
+      pip uninstall --yes keras;
+
+
   build:
     commands:
       echo "Running Keras Unit Tests and Integration Tests for all the backends";
-      py.test tests/ --ignore=tests/keras/utils/;tests/keras/wrappers/;
-      echo "Running utils and wrappers tests separately to avoid process hanging";
-      py.test tests/keras/utils/ --ignore=tests/keras/wrappers/;
-      py.test tests/keras/wrappers/;
+      py.test tests/;
       echo "Running PEP tests";
       py.test --pep8 -m pep8 -n0;
