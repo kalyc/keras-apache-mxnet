@@ -649,4 +649,3 @@ def test_Bidirectional_losses():
 
 if __name__ == '__main__':
     pytest.main([__file__])
-    
