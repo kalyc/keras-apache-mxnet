@@ -18,7 +18,9 @@ from collections import OrderedDict
 from collections import Iterable
 from .utils.generic_utils import Progbar
 from . import backend as K
-from .engine.topology import Layer
+from .engine.training_utils import standardize_input_data
+
+from .engine.saving import save_mxnet_model
 
 try:
     import requests
@@ -250,9 +252,6 @@ class TerminateOnNaN(Callback):
     """Callback that terminates training when a NaN loss is encountered.
     """
 
-    def __init__(self):
-        super(TerminateOnNaN, self).__init__()
-
     def on_batch_end(self, batch, logs=None):
         logs = logs or {}
         loss = logs.get('loss')
@@ -431,8 +430,9 @@ class ModelCheckpoint(Callback):
             if self.save_best_only:
                 current = logs.get(self.monitor)
                 if current is None:
-                    warnings.warn('Can save best model only with %s available, '
-                                  'skipping.' % (self.monitor), RuntimeWarning)
+                    warnings.warn('Unable to calculate the metric for determining the best model. '
+                                  'Can save best model only with %s available, '
+                                  'skipping.' % self.monitor, RuntimeWarning)
                 else:
                     if self.monitor_op(current, self.best):
                         if self.verbose > 0:
@@ -477,13 +477,22 @@ class EarlyStopping(Callback):
             monitored has stopped increasing; in `auto`
             mode, the direction is automatically inferred
             from the name of the monitored quantity.
+        baseline: Baseline value for the monitored quantity to reach.
+            Training will stop if the model doesn't show improvement
+            over the baseline.
     """
 
-    def __init__(self, monitor='val_loss',
-                 min_delta=0, patience=0, verbose=0, mode='auto'):
+    def __init__(self,
+                 monitor='val_loss',
+                 min_delta=0,
+                 patience=0,
+                 verbose=0,
+                 mode='auto',
+                 baseline=None):
         super(EarlyStopping, self).__init__()
 
         self.monitor = monitor
+        self.baseline = baseline
         self.patience = patience
         self.verbose = verbose
         self.min_delta = min_delta
@@ -515,7 +524,10 @@ class EarlyStopping(Callback):
         # Allow instances to be re-used
         self.wait = 0
         self.stopped_epoch = 0
-        self.best = np.Inf if self.monitor_op == np.less else -np.Inf
+        if self.baseline is not None:
+            self.best = self.baseline
+        else:
+            self.best = np.Inf if self.monitor_op == np.less else -np.Inf
 
     def on_epoch_end(self, epoch, logs=None):
         current = logs.get(self.monitor)
@@ -617,7 +629,7 @@ class LearningRateScheduler(Callback):
             raise ValueError('Optimizer must have a "lr" attribute.')
         lr = float(K.get_value(self.model.optimizer.lr))
         try:  # new API
-            lr = self.schedule(epoch, lr=lr)
+            lr = self.schedule(epoch, lr)
         except TypeError:  # old API for backward compatibility
             lr = self.schedule(epoch)
         if not isinstance(lr, (float, np.float32, np.float64)):
@@ -625,7 +637,7 @@ class LearningRateScheduler(Callback):
                              'should be float.')
         K.set_value(self.model.optimizer.lr, lr)
         if self.verbose > 0:
-            print('\nEpoch %05d: LearningRateScheduler reducing learning '
+            print('\nEpoch %05d: LearningRateScheduler setting learning '
                   'rate to %s.' % (epoch + 1, lr))
 
 
@@ -667,7 +679,9 @@ class TensorBoard(Callback):
         write_images: whether to write model weights to visualize as
             image in TensorBoard.
         embeddings_freq: frequency (in epochs) at which selected embedding
-            layers will be saved.
+            layers will be saved. If set to 0, embeddings won't be computed.
+            Data to be visualized in TensorBoard's Embedding tab must be passed
+            as `embeddings_data`.
         embeddings_layer_names: a list of names of layers to keep eye on. If
             None or empty list all the embedding layer will be watched.
         embeddings_metadata: a dictionary which maps layer name to a file name
@@ -675,6 +689,10 @@ class TensorBoard(Callback):
             [details](https://www.tensorflow.org/how_tos/embedding_viz/#metadata_optional)
             about metadata files format. In case if the same metadata file is
             used for all embedding layers, string can be passed.
+        embeddings_data: data to be embedded at layers specified in
+            `embeddings_layer_names`. Numpy array (if the model has a single
+            input) or list of Numpy arrays (if the model has multiple inputs).
+            Learn [more about embeddings](https://www.tensorflow.org/programmers_guide/embedding)
     """
 
     def __init__(self, log_dir='./logs',
@@ -685,7 +703,8 @@ class TensorBoard(Callback):
                  write_images=False,
                  embeddings_freq=0,
                  embeddings_layer_names=None,
-                 embeddings_metadata=None):
+                 embeddings_metadata=None,
+                 embeddings_data=None):
         super(TensorBoard, self).__init__()
         global tf, projector
         try:
@@ -722,6 +741,7 @@ class TensorBoard(Callback):
         self.embeddings_layer_names = embeddings_layer_names
         self.embeddings_metadata = embeddings_metadata or {}
         self.batch_size = batch_size
+        self.embeddings_data = embeddings_data
 
     def set_model(self, model):
         self.model = model
@@ -778,8 +798,12 @@ class TensorBoard(Callback):
                         tf.summary.image(mapped_weight_name, w_img)
 
                 if hasattr(layer, 'output'):
-                    tf.summary.histogram('{}_out'.format(layer.name),
-                                         layer.output)
+                    if isinstance(layer.output, list):
+                        for i, output in enumerate(layer.output):
+                            tf.summary.histogram('{}_out_{}'.format(layer.name, i), output)
+                    else:
+                        tf.summary.histogram('{}_out'.format(layer.name),
+                                             layer.output)
         self.merged = tf.summary.merge_all()
 
         if self.write_graph:
@@ -788,18 +812,35 @@ class TensorBoard(Callback):
         else:
             self.writer = tf.summary.FileWriter(self.log_dir)
 
-        if self.embeddings_freq:
+        if self.embeddings_freq and self.embeddings_data is not None:
+            self.embeddings_data = standardize_input_data(self.embeddings_data, model.input_names)
+
             embeddings_layer_names = self.embeddings_layer_names
 
             if not embeddings_layer_names:
                 embeddings_layer_names = [layer.name for layer in self.model.layers
                                           if type(layer).__name__ == 'Embedding']
+            self.assign_embeddings = []
+            embeddings_vars = {}
 
-            embeddings = {layer.name: layer.weights[0]
-                          for layer in self.model.layers
-                          if layer.name in embeddings_layer_names}
+            self.batch_id = batch_id = tf.placeholder(tf.int32)
+            self.step = step = tf.placeholder(tf.int32)
 
-            self.saver = tf.train.Saver(list(embeddings.values()))
+            for layer in self.model.layers:
+                if layer.name in embeddings_layer_names:
+                    embedding_input = self.model.get_layer(layer.name).output
+                    embedding_size = np.prod(embedding_input.shape[1:])
+                    embedding_input = tf.reshape(embedding_input,
+                                                 (step, int(embedding_size)))
+                    shape = (self.embeddings_data[0].shape[0], int(embedding_size))
+                    embedding = tf.Variable(tf.zeros(shape),
+                                            name=layer.name + '_embedding')
+                    embeddings_vars[layer.name] = embedding
+                    batch = tf.assign(embedding[batch_id:batch_id + step],
+                                      embedding_input)
+                    self.assign_embeddings.append(batch)
+
+            self.saver = tf.train.Saver(list(embeddings_vars.values()))
 
             embeddings_metadata = {}
 
@@ -807,13 +848,11 @@ class TensorBoard(Callback):
                 embeddings_metadata = self.embeddings_metadata
             else:
                 embeddings_metadata = {layer_name: self.embeddings_metadata
-                                       for layer_name in embeddings.keys()}
+                                       for layer_name in embeddings_vars.keys()}
 
             config = projector.ProjectorConfig()
-            self.embeddings_ckpt_path = os.path.join(self.log_dir,
-                                                     'keras_embedding.ckpt')
 
-            for layer_name, tensor in embeddings.items():
+            for layer_name, tensor in embeddings_vars.items():
                 embedding = config.embeddings.add()
                 embedding.tensor_name = tensor.name
 
@@ -826,8 +865,11 @@ class TensorBoard(Callback):
         logs = logs or {}
 
         if not self.validation_data and self.histogram_freq:
-            raise ValueError('If printing histograms, validation_data must be '
-                             'provided, and cannot be a generator.')
+            raise ValueError("If printing histograms, validation_data must be "
+                             "provided, and cannot be a generator.")
+        if self.embeddings_data is None and self.embeddings_freq:
+            raise ValueError("To visualize embeddings, embeddings_data must "
+                             "be provided.")
         if self.validation_data and self.histogram_freq:
             if epoch % self.histogram_freq == 0:
 
@@ -857,11 +899,43 @@ class TensorBoard(Callback):
                     self.writer.add_summary(summary_str, epoch)
                     i += self.batch_size
 
-        if self.embeddings_freq and self.embeddings_ckpt_path:
+        if self.embeddings_freq and self.embeddings_data is not None:
             if epoch % self.embeddings_freq == 0:
-                self.saver.save(self.sess,
-                                self.embeddings_ckpt_path,
-                                epoch)
+                # We need a second forward-pass here because we're passing
+                # the `embeddings_data` explicitly. This design allows to pass
+                # arbitrary data as `embeddings_data` and results from the fact
+                # that we need to know the size of the `tf.Variable`s which
+                # hold the embeddings in `set_model`. At this point, however,
+                # the `validation_data` is not yet set.
+
+                # More details in this discussion:
+                # https://github.com/keras-team/keras/pull/7766#issuecomment-329195622
+
+                embeddings_data = self.embeddings_data
+                n_samples = embeddings_data[0].shape[0]
+
+                i = 0
+                while i < n_samples:
+                    step = min(self.batch_size, n_samples - i)
+                    batch = slice(i, i + step)
+
+                    if type(self.model.input) == list:
+                        feed_dict = {model_input: embeddings_data[idx][batch]
+                                     for idx, model_input in enumerate(self.model.input)}
+                    else:
+                        feed_dict = {self.model.input: embeddings_data[0][batch]}
+
+                    feed_dict.update({self.batch_id: i, self.step: step})
+
+                    if self.model.uses_learning_phase:
+                        feed_dict[K.learning_phase()] = False
+
+                    self.sess.run(self.assign_embeddings, feed_dict=feed_dict)
+                    self.saver.save(self.sess,
+                                    os.path.join(self.log_dir, 'keras_embedding.ckpt'),
+                                    epoch)
+
+                    i += self.batch_size
 
         for name, value in logs.items():
             if name in ['batch', 'size']:
@@ -926,7 +1000,7 @@ class ReduceLROnPlateau(Callback):
         if 'epsilon' in kwargs:
             min_delta = kwargs.pop('epsilon')
             warnings.warn('`epsilon` argument is deprecated and '
-                          'will be removed, use `min_delta` insted.')
+                          'will be removed, use `min_delta` instead.')
         self.factor = factor
         self.min_lr = min_lr
         self.min_delta = min_delta
@@ -1161,3 +1235,72 @@ class LambdaCallback(Callback):
             self.on_train_end = on_train_end
         else:
             self.on_train_end = lambda logs: None
+
+
+class MXNetModelCheckpoint(ModelCheckpoint):
+    """Save the MXNet Model after every epoch. Saves both params and symbol file. Saves in the current directory.
+
+       If save_best_only is True, saves the MXNet model in the format '<prefix>-symbol.json' and '<prefix>-0000.params'.
+       i.e., uses 0000 as placeholder for the epoch. You will have only one best model at the end of training.
+
+       If save_best_only is False, i.e., you want to save the MXNet model after each epoch, this callback saves the Model
+       in the format '<prefix>-symbol.json' and '<prefix>-<epoch>.params'. Example: If you are running the training job
+       for 2 epochs, you will have one symbol file - '<prefix>-symbol.json' and 2 params file, one each for the 2 epochs,
+       '<prefix>-0000.params' and '<prefix>-0001.params'
+
+       # Arguments
+           prefix: Prefix name of the saved MXNet Model (symbol and params) files.
+                   Model will be saved as '<prefix>-symbol.json' and '<prefix>-<epoch>.params'.
+           monitor: quantity to monitor. Example: 'val_acc', 'val_loss'.
+           verbose: verbosity mode, 0 or 1.
+           save_best_only: if `save_best_only=True`,
+               the latest best model according to
+               the quantity monitored will not be overwritten.
+           mode: one of {auto, min, max}.
+               If `save_best_only=True`, the decision
+               to overwrite the current save file is made
+               based on either the maximization or the
+               minimization of the monitored quantity. For `val_acc`,
+               this should be `max`, for `val_loss` this should
+               be `min`, etc. In `auto` mode, the direction is
+               automatically inferred from the name of the monitored quantity.
+           period: Interval (number of epochs) between checkpoints.
+       """
+    def __init__(self, prefix, monitor='val_loss', verbose=0,
+                 save_best_only=False,
+                 mode='auto', period=1):
+        super(MXNetModelCheckpoint, self).__init__(filepath=None, monitor=monitor, verbose=verbose,
+                                                   save_best_only=save_best_only, save_weights_only=False,
+                                                   mode=mode, period=period)
+        self.prefix = prefix
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        self.epochs_since_last_save += 1
+        if self.epochs_since_last_save >= self.period:
+            self.epochs_since_last_save = 0
+            if self.save_best_only:
+                # We use epoch=0 for saving the best model. This will replace previous best model.
+                current = logs.get(self.monitor)
+                if current is None:
+                    warnings.warn('Can save best model only with %s available, '
+                                  'skipping.' % self.monitor, RuntimeWarning)
+                else:
+                    if self.monitor_op(current, self.best):
+                        if self.verbose > 0:
+                            print('\nEpoch %05d: %s improved from %0.5f to %0.5f,'
+                                  ' saving the MXNet model.'
+                                  % (epoch + 1, self.monitor, self.best,
+                                     current))
+                        self.best = current
+                        save_mxnet_model(self.model, prefix=self.prefix)
+                    else:
+                        if self.verbose > 0:
+                            print('\nEpoch %05d: %s did not improve from %0.5f' %
+                                  (epoch + 1, self.monitor, self.best))
+            else:
+                # User want to save model after each epoch. Hence, using the `epoch`.
+                if self.verbose > 0:
+                    print('\nEpoch %05d: saving the MXNet model.' % (epoch + 1))
+
+                save_mxnet_model(self.model, prefix=self.prefix, epoch=epoch)

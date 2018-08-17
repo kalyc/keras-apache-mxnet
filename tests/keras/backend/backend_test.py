@@ -547,6 +547,16 @@ class TestBackend(object):
         assert output == [21.]
         assert KTF.get_session().run(fetches=[x, y]) == [30., 40.]
 
+    def test_function_tf_string_input(self):
+        # Test functions with string inputs.
+
+        x_placeholder = KTF.placeholder(shape=(), dtype="string")
+        x_identity = KTF.identity(x_placeholder)
+
+        f = KTF.function(inputs=[x_placeholder], outputs=[x_identity])
+        output = f([b'test'])
+        assert output == [b'test']
+
     def test_rnn(self):
         # implement a simple RNN
         num_samples = 4
@@ -615,6 +625,82 @@ class TestBackend(object):
                 assert_allclose(last_output_list[i - 1], last_output_list[i], atol=1e-05)
                 assert_allclose(outputs_list[i - 1], outputs_list[i], atol=1e-05)
                 assert_allclose(state_list[i - 1], state_list[i], atol=1e-05)
+
+    def test_rnn_additional_states(self):
+        # implement a simple RNN with an additional state
+        # whose shape is different from that of the output
+        num_samples = 4
+        input_dim = 5
+        output_dim = 3
+        timesteps = 6
+
+        _, x = parse_shape_or_val((num_samples, timesteps, input_dim))
+        _, h0 = parse_shape_or_val((num_samples, output_dim))
+        _, wi = parse_shape_or_val((input_dim, output_dim))
+        _, wh = parse_shape_or_val((output_dim, output_dim))
+        mask = np.random.randint(2, size=(num_samples, timesteps))
+
+        x_k = K.variable(x)
+        h0_k = [K.variable(h0), K.variable(np.concatenate([h0, h0], axis=-1))]
+        wi_k = K.variable(wi)
+        wh_k = K.variable(wh)
+        mask_k = K.variable(mask)
+
+        def rnn_fn(x_k, h_k):
+            assert len(h_k) == 2
+            y_k = K.dot(x_k, wi_k) + K.dot(h_k[0], wh_k)
+            return y_k, [y_k, K.concatenate([y_k, y_k], axis=-1)]
+
+        # test default setup
+        last_output_list = []
+        outputs_list = []
+        state_list = []
+
+        kwargs_list = [
+            {'go_backwards': False, 'mask': None},
+            {'go_backwards': False, 'mask': None, 'unroll': True, 'input_length': timesteps},
+            {'go_backwards': True, 'mask': None},
+            {'go_backwards': True, 'mask': None, 'unroll': True, 'input_length': timesteps},
+            {'go_backwards': False, 'mask': mask_k},
+            {'go_backwards': False, 'mask': mask_k, 'unroll': True, 'input_length': timesteps},
+        ]
+
+        for (i, kwargs) in enumerate(kwargs_list):
+            last_y1, y1, h1 = reference_operations.rnn(x, [wi, wh, None], h0, **kwargs)
+            last_y2, y2, h2 = K.rnn(rnn_fn, x_k, h0_k, **kwargs)
+
+            assert len(h2) == 2
+            last_y2 = K.eval(last_y2)
+            y2 = K.eval(y2)
+            h11 = h1[:, -1]
+            h12 = np.concatenate([h1[:, -1], h1[:, -1]], axis=-1)
+            h21 = K.eval(h2[0])
+            h22 = K.eval(h2[1])
+
+            if kwargs['mask'] is not None:
+                last_y1 = last_y1 * np.expand_dims(mask[:, -1], -1)
+                last_y2 = last_y2 * np.expand_dims(mask[:, -1], -1)
+                y1 = y1 * np.expand_dims(mask, -1)
+                y2 = y2 * np.expand_dims(mask, -1)
+                h11 = h11 * np.expand_dims(mask[:, -1], -1)
+                h21 = h21 * np.expand_dims(mask[:, -1], -1)
+                h12 = h12 * np.expand_dims(mask[:, -1], -1)
+                h22 = h22 * np.expand_dims(mask[:, -1], -1)
+
+            last_output_list.append(last_y2)
+            outputs_list.append(y2)
+            state_list.append((h21, h22))
+
+            if i % 2 == 0:
+                assert_allclose(last_y1, last_y2, atol=1e-05)
+                assert_allclose(y1, y2, atol=1e-05)
+                assert_allclose(h11, h21, atol=1e-05)
+                assert_allclose(h12, h22, atol=1e-05)
+            else:
+                assert_allclose(last_output_list[i - 1], last_output_list[i], atol=1e-05)
+                assert_allclose(outputs_list[i - 1], outputs_list[i], atol=1e-05)
+                assert_allclose(state_list[i - 1][0], state_list[i][0], atol=1e-05)
+                assert_allclose(state_list[i - 1][1], state_list[i][1], atol=1e-05)
 
     def test_rnn_no_states(self):
         # implement a simple RNN without states
@@ -985,6 +1071,7 @@ class TestBackend(object):
         input_shape = (4, 8, 2)
         kernel_shape = (3, 2, 3)
 
+        # MXNet backend does not support conv1d yet.
         for strides in [1, 2]:
             check_two_tensor_operation('conv1d', input_shape, kernel_shape,
                                        BACKENDS, cntk_dynamicity=True,
@@ -1035,69 +1122,20 @@ class TestBackend(object):
                                        BACKENDS_WITHOUT_MXNET, cntk_dynamicity=True,
                                        data_format=data_format)
 
-        # test in data_format = channels_first
-        for input_shape in [(2, 3, 4, 5, 4), (2, 3, 5, 4, 6)]:
-            for kernel_shape in [(2, 2, 2, 3, 4), (3, 2, 4, 3, 4)]:
-                check_two_tensor_operation('conv3d', input_shape, kernel_shape,
-                                           BACKENDS_WITHOUT_MXNET, cntk_dynamicity=True,
-                                           data_format='channels_first')
-
-        # test in data_format = channels_last
-        input_shape = (1, 2, 2, 2, 1)
-        kernel_shape = (2, 2, 2, 1, 1)
-        check_two_tensor_operation('conv3d', input_shape, kernel_shape,
-                                   BACKENDS, cntk_dynamicity=True,
-                                   data_format='channels_last')
-
-        xval = np.random.random(input_shape)
-        kernel_val = np.random.random(kernel_shape) - 0.5
-        # Test invalid use cases
-        for k in BACKENDS:
-            with pytest.raises(ValueError):
-                k.conv3d(k.variable(xval), k.variable(kernel_val), data_format='channels_middle')
-
-    @pytest.mark.parametrize('k', [KTF, KMX], ids=['TensorFlow', 'MXNet'])
-    def test_depthwise_conv_2d(self, k):
-        for data_format in ['channels_first', 'channels_last']:
-            x_shape = (4, 4)
-            # MXNet only support depth_multiplier=1
-            # TODO: fully support depth_multiplier for depthwise_conv2d
-            depth_multiplier = 1 if k == KMX else 2
-            # default kernel shape for TensorFlow backend
-            kernel_shape = (3, 3, 3, depth_multiplier)
-
-            if data_format == 'channels_first':
-                input_shape = (2, 3) + x_shape
-                # MXNet requires different kernel shape for channels first
-                if k == KMX:
-                    kernel_shape = (3, depth_multiplier, 3, 3)
-            elif data_format == 'channels_last':
-                input_shape = (2,) + x_shape + (3,)
-
-            x_val = np.ones(input_shape)
-            kernel_val = np.arange(np.prod(kernel_shape)).reshape(kernel_shape)
-            z = k.eval(k.depthwise_conv2d(k.variable(x_val), k.variable(kernel_val),
-                                          data_format=data_format))
-            # split to num_in_channels*depth_multiplier
-            for z_i in np.split(z, 3 * depth_multiplier, axis=1 if data_format == 'channels_first' else -1):
-                assert_allclose(z_i, z_i[0] * np.ones_like(z_i))
-
-        # Test invalid use cases
-        with pytest.raises(ValueError):
-            k.depthwise_conv2d(k.variable(x_val), k.variable(kernel_val), data_format='channels_middle')
-
     @pytest.mark.skipif(K.backend() == 'theano' or K.backend() == 'mxnet', reason='Not supported.')
     @pytest.mark.parametrize('op,input_shape,kernel_shape,depth_multiplier,padding,data_format', [
+        ('separable_conv1d', (2, 8, 2), (3,), 1, 'same', 'channels_last'),
+        ('separable_conv1d', (1, 8, 2), (3,), 2, 'valid', 'channels_last'),
         ('separable_conv2d', (2, 3, 4, 5), (3, 3), 1, 'same', 'channels_first'),
         ('separable_conv2d', (2, 3, 5, 6), (4, 3), 2, 'valid', 'channels_first'),
         ('separable_conv2d', (1, 6, 5, 3), (3, 4), 1, 'valid', 'channels_last'),
         ('separable_conv2d', (1, 7, 6, 3), (3, 3), 2, 'same', 'channels_last'),
     ])
-    def test_separable_conv2d(self, op, input_shape, kernel_shape, depth_multiplier, padding, data_format):
+    def test_separable_conv(self, op, input_shape, kernel_shape, depth_multiplier, padding, data_format):
         input_depth = input_shape[1] if data_format == 'channels_first' else input_shape[-1]
         _, x = parse_shape_or_val(input_shape)
         _, depthwise = parse_shape_or_val(kernel_shape + (input_depth, depth_multiplier))
-        _, pointwise = parse_shape_or_val((1, 1) + (input_depth * depth_multiplier, 7))
+        _, pointwise = parse_shape_or_val((1,) * len(kernel_shape) + (input_depth * depth_multiplier, 7))
         y1 = reference_operations.separable_conv(x, depthwise, pointwise, padding, data_format)
         if K.backend() == 'cntk':
             y2 = cntk_func_three_tensor(
@@ -1158,13 +1196,19 @@ class TestBackend(object):
                                       strides=(1, 1, 1), padding='same', pool_mode='avg')
 
     def test_random_normal(self):
-        mean = 0.
-        std = 1.
+        # test standard normal as well as a normal with a different set of parameters
         for k in BACKENDS:
-            rand = k.eval(k.random_normal((300, 200), mean=mean, stddev=std, seed=1337))
-            assert rand.shape == (300, 200)
-            assert np.abs(np.mean(rand) - mean) < 0.015
-            assert np.abs(np.std(rand) - std) < 0.015
+            for mean, std in [(0., 1.), (-10., 5.)]:
+                rand = k.eval(k.random_normal((300, 200), mean=mean, stddev=std, seed=1337))
+                assert rand.shape == (300, 200)
+                assert np.abs(np.mean(rand) - mean) < std * 0.015
+                assert np.abs(np.std(rand) - std) < std * 0.015
+
+                # test that random_normal also generates different values when used within a function
+                r = k.random_normal((1,), mean=mean, stddev=std, seed=1337)
+                samples = [k.eval(r) for _ in range(60000)]
+                assert np.abs(np.mean(samples) - mean) < std * 0.015
+                assert np.abs(np.std(samples) - std) < std * 0.015
 
     def test_random_uniform(self):
         min_val = -1.
@@ -1173,8 +1217,14 @@ class TestBackend(object):
             rand = k.eval(k.random_uniform((200, 100), min_val, max_val))
             assert rand.shape == (200, 100)
             assert np.abs(np.mean(rand)) < 0.015
-            assert np.max(rand) <= max_val
-            assert np.min(rand) >= min_val
+            assert max_val - 0.015 < np.max(rand) <= max_val
+            assert min_val + 0.015 > np.min(rand) >= min_val
+
+            r = k.random_uniform((1,), minval=min_val, maxval=max_val)
+            samples = [k.eval(r) for _ in range(20000)]
+            assert np.abs(np.mean(samples)) < 0.015
+            assert max_val - 0.015 < np.max(samples) <= max_val
+            assert min_val + 0.015 > np.min(samples) >= min_val
 
     def test_random_binomial(self):
         p = 0.5
@@ -1185,33 +1235,69 @@ class TestBackend(object):
             assert np.max(rand) == 1
             assert np.min(rand) == 0
 
+            r = k.random_binomial((1,), p)
+            samples = [k.eval(r) for _ in range(20000)]
+            assert np.abs(np.mean(samples) - p) < 0.015
+            assert np.max(samples) == 1
+            assert np.min(samples) == 0
+
+    @pytest.mark.skipif(K.backend() == 'mxnet',
+                        reason="MXNet backend does not support truncated normal yet.")
+    def test_truncated_normal(self):
+        mean = 0.
+        std = 1.
+        min_val = -2.
+        max_val = 2.
+        for k in BACKENDS:
+            rand = k.eval(k.truncated_normal((300, 200), mean=mean, stddev=std, seed=1337))
+            assert rand.shape == (300, 200)
+            assert np.abs(np.mean(rand) - mean) < 0.015
+            assert np.max(rand) <= max_val
+            assert np.min(rand) >= min_val
+
+            # assumption in initializers.VarianceScaling
+            assert np.abs(np.std(rand) - std * 0.87962) < 0.015
+
     def test_conv_invalid_use(self):
-        with pytest.raises(ValueError):
-            K.conv1d(K.variable(np.ones((4, 8, 2))),
-                     K.variable(np.ones((3, 2, 3))),
-                     data_format='channels_middle')
+        dummy_x_1d = K.variable(np.ones((4, 8, 2)))
+        dummy_w_1d = K.variable(np.ones((3, 2, 3)))
+        dummy_x_2d = K.variable(np.ones((2, 3, 4, 5)))
+        dummy_w_2d = K.variable(np.ones((2, 2, 3, 4)))
+        dummy_x_3d = K.variable(np.ones((2, 3, 4, 5, 4)))
+        dummy_w_3d = K.variable(np.ones((2, 2, 2, 3, 4)))
+        dummy_w1x1_2d = K.variable(np.ones((1, 1, 12, 7)))
 
         with pytest.raises(ValueError):
-            K.conv2d(K.variable(np.ones((2, 3, 4, 5))),
-                     K.variable(np.ones((2, 2, 3, 4))),
-                     data_format='channels_middle')
+            K.conv1d(dummy_x_1d, dummy_w_1d, data_format='channels_middle')
 
         with pytest.raises(ValueError):
-            K.conv3d(K.variable(np.ones((2, 3, 4, 5, 4))),
-                     K.variable(np.ones((2, 2, 2, 3, 4))),
-                     data_format='channels_middle')
+            K.conv2d(dummy_x_2d, dummy_w_2d, data_format='channels_middle')
+
+        with pytest.raises(ValueError):
+            K.conv3d(dummy_x_3d, dummy_w_3d, data_format='channels_middle')
 
         if K.backend() != 'theano' and K.backend() != 'mxnet':
             with pytest.raises(ValueError):
-                K.separable_conv2d(K.variable(np.ones((2, 3, 4, 5))),
-                                   K.variable(np.ones((2, 2, 3, 4))),
-                                   K.variable(np.ones((1, 1, 12, 7))),
+                K.separable_conv2d(dummy_x_2d, dummy_w_2d, dummy_w1x1_2d,
                                    data_format='channels_middle')
-        if K.backend() != 'mxnet':
+
+        with pytest.raises(ValueError):
+            K.depthwise_conv2d(dummy_x_2d, dummy_w_2d,
+                               data_format='channels_middle')
+
+        if K.backend() == 'cntk':
             with pytest.raises(ValueError):
-                K.depthwise_conv2d(K.variable(np.ones((2, 3, 4, 5))),
-                                   K.variable(np.ones((2, 2, 3, 4))),
-                                   data_format='channels_middle')
+                K.separable_conv2d(dummy_x_2d, dummy_w_2d, dummy_w1x1_2d,
+                                   dilation_rate=(1, 2))
+            with pytest.raises(ValueError):
+                K.separable_conv2d(dummy_x_2d, dummy_w_2d, dummy_w1x1_2d,
+                                   strides=(2, 2), dilation_rate=(1, 2))
+            with pytest.raises(ValueError):
+                K.depthwise_conv2d(dummy_x_2d, dummy_w_2d,
+                                   dilation_rate=(1, 2))
+            with pytest.raises(ValueError):
+                K.depthwise_conv2d(dummy_x_2d, dummy_w_2d,
+                                   strides=(2, 2), dilation_rate=(1, 2))
 
     def test_pooling_invalid_use(self):
         for (input_shape, pool_size) in zip([(5, 10, 12, 3), (5, 10, 12, 6, 3)], [(2, 2), (2, 2, 2)]):
@@ -1756,11 +1842,7 @@ class TestBackend(object):
     def test_dtype(self):
         assert K.dtype(K.variable(1, dtype='float64')) == 'float64'
         assert K.dtype(K.variable(1, dtype='float32')) == 'float32'
-        if K.backend() == 'cntk':
-            with pytest.raises(ValueError):
-                K.variable(1, dtype='float16')
-        else:
-            assert K.dtype(K.variable(1, dtype='float16')) == 'float16'
+        assert K.dtype(K.variable(1, dtype='float16')) == 'float16'
 
     def test_variable_support_bool_dtype(self):
         # Github issue: 7819

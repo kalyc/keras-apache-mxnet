@@ -273,7 +273,14 @@ def constant(value, dtype=None, shape=None, name=None):
     # Returns
         A Constant Tensor.
     """
-    if shape is None:
+    if dtype is None:
+        dtype = floatx()
+
+    if type(value) is np.ndarray:
+        mx_ndarray = mx.nd.array(value, dtype=dtype)
+    elif type(value) is list:
+        mx_ndarray = mx.nd.array(value, dtype=dtype)
+    elif shape is None:
         mx_ndarray = mx.nd.array(value, dtype=dtype)
     else:
         shape = tuple([0 if dim is None else dim for dim in shape])
@@ -336,6 +343,10 @@ def is_keras_tensor(x):
         raise ValueError('MXNet Backend: Unexpectedly found an instance of type `' +
                          str(type(x)) + '`.''Expected a symbolic tensor instance.')
     return hasattr(x, '_keras_history')
+
+
+def is_tensor(x):
+    return isinstance(x, KerasSymbol) or isinstance(x, mx.sym.Symbol) or isinstance(x, mx.nd.NDArray)
 
 
 def placeholder(shape=None, ndim=None, dtype=None, sparse=False, name=None):
@@ -1596,12 +1607,20 @@ def clip(x, min_value, max_value):
 def equal(x, y):
     """Element-wise equality between two tensors.
 
+    For all element-wise comparison operators:
+    use broadcasting to do element-wise comparison if both x & y are MXNet symbol
+    use native comparison operators for scalar
+    use numpy operators if both x & y are numbers or numpy arrays
+
     # Arguments
         x: Tensor or variable.
         y: Tensor or variable.
 
     # Returns
         A bool tensor.
+
+    # Raise
+        TypeError: if inputs are not valid.
     """
     scalar = False
     if isinstance(x, KerasSymbol):
@@ -1610,12 +1629,16 @@ def equal(x, y):
     if isinstance(y, KerasSymbol):
         y = y.symbol
         scalar = True
-    if scalar:
-        return KerasSymbol(mx.sym.Cast(x == y, dtype='uint8'))
     if isinstance(x, mx.sym.Symbol) and isinstance(y, mx.sym.Symbol):
-        return KerasSymbol(mx.sym.Cast(mx.sym.broadcast_equal(lhs=x, rhs=y), dtype='uint8'))
+        out = KerasSymbol(mx.sym.Cast(mx.sym.broadcast_equal(lhs=x, rhs=y), dtype='uint8'))
+    elif scalar:
+        out = KerasSymbol(mx.sym.Cast(x == y, dtype='uint8'))
     else:
-        raise TypeError('MXNet Backend: The inputs are not valid for equal operation.')
+        try:
+            out = np.equal(x, y)
+        except:
+            raise TypeError('MXNet Backend: The inputs are not valid for equal operation.')
+    return out
 
 
 @keras_mxnet_symbol
@@ -1628,6 +1651,9 @@ def not_equal(x, y):
 
     # Returns
         A bool tensor.
+
+    # Raise
+        TypeError: if inputs are not valid.
     """
     scalar = False
     if isinstance(x, KerasSymbol):
@@ -1636,12 +1662,16 @@ def not_equal(x, y):
     if isinstance(y, KerasSymbol):
         y = y.symbol
         scalar = True
-    if scalar:
-        return KerasSymbol(mx.sym.Cast(x != y, dtype='uint8'))
     if isinstance(x, mx.sym.Symbol) and isinstance(y, mx.sym.Symbol):
-        return KerasSymbol(mx.sym.Cast(mx.sym.broadcast_not_equal(lhs=x, rhs=y), dtype='uint8'))
+        out = KerasSymbol(mx.sym.Cast(mx.sym.broadcast_not_equal(lhs=x, rhs=y), dtype='uint8'))
+    elif scalar:
+        out = KerasSymbol(mx.sym.Cast(x != y, dtype='uint8'))
     else:
-        raise TypeError('MXNet Backend: The inputs are not valid for not_equal operation.')
+        try:
+            out = np.not_equal(x, y)
+        except:
+            raise TypeError('MXNet Backend: The inputs are not valid for not_equal operation.')
+    return out
 
 
 @keras_mxnet_symbol
@@ -1654,6 +1684,9 @@ def greater(x, y):
 
     # Returns
         A bool tensor.
+
+    # Raise
+        TypeError: if inputs are not valid.
     """
     scalar = False
     if isinstance(x, KerasSymbol):
@@ -1662,12 +1695,16 @@ def greater(x, y):
     if isinstance(y, KerasSymbol):
         y = y.symbol
         scalar = True
-    if scalar:
-        return KerasSymbol(mx.sym.Cast(x > y, dtype='uint8'))
     if isinstance(x, mx.sym.Symbol) and isinstance(y, mx.sym.Symbol):
-        return KerasSymbol(mx.sym.Cast(mx.sym.broadcast_greater(lhs=x, rhs=y), dtype='uint8'))
+        out = KerasSymbol(mx.sym.Cast(mx.sym.broadcast_greater(lhs=x, rhs=y), dtype='uint8'))
+    elif scalar:
+        out = KerasSymbol(mx.sym.Cast(x > y, dtype='uint8'))
     else:
-        raise TypeError('MXNet Backend: The inputs are not valid for greater operation.')
+        try:
+            out = np.greater(x, y)
+        except:
+            raise TypeError('MXNet Backend: The inputs are not valid for greater operation.')
+    return out
 
 
 @keras_mxnet_symbol
@@ -1680,6 +1717,9 @@ def greater_equal(x, y):
 
     # Returns
         A bool tensor.
+
+    # Raise
+        TypeError: if inputs are not valid.
     """
     scalar = False
     if isinstance(x, KerasSymbol):
@@ -1688,12 +1728,16 @@ def greater_equal(x, y):
     if isinstance(y, KerasSymbol):
         y = y.symbol
         scalar = True
-    if scalar:
-        return KerasSymbol(mx.sym.Cast(x >= y, dtype='uint8'))
     if isinstance(x, mx.sym.Symbol) and isinstance(y, mx.sym.Symbol):
-        return KerasSymbol(mx.sym.Cast(mx.sym.broadcast_greater_equal(lhs=x, rhs=y), dtype='uint8'))
+        out = KerasSymbol(mx.sym.Cast(mx.sym.broadcast_greater_equal(lhs=x, rhs=y), dtype='uint8'))
+    elif scalar:
+        out = KerasSymbol(mx.sym.Cast(x >= y, dtype='uint8'))
     else:
-        raise TypeError('MXNet Backend: The inputs are not valid for greater_equal operation.')
+        try:
+            out = np.greater_equal(x, y)
+        except:
+            raise TypeError('MXNet Backend: The inputs are not valid for greater_equal operation.')
+    return out
 
 
 @keras_mxnet_symbol
@@ -1706,6 +1750,9 @@ def less(x, y):
 
     # Returns
         A bool tensor.
+
+    # Raise
+        TypeError: if inputs are not valid.
     """
     scalar = False
     if isinstance(x, KerasSymbol):
@@ -1714,9 +1761,16 @@ def less(x, y):
     if isinstance(y, KerasSymbol):
         y = y.symbol
         scalar = True
-    if scalar:
-        return KerasSymbol(mx.sym.Cast(x < y, dtype='uint8'))
-    return KerasSymbol(mx.sym.Cast(mx.sym.broadcast_lesser(lhs=x, rhs=y), dtype='uint8'))
+    if isinstance(x, mx.sym.Symbol) and isinstance(y, mx.sym.Symbol):
+        out = KerasSymbol(mx.sym.Cast(mx.sym.broadcast_lesser(lhs=x, rhs=y), dtype='uint8'))
+    elif scalar:
+        out = KerasSymbol(mx.sym.Cast(x < y, dtype='uint8'))
+    else:
+        try:
+            out = np.less(x, y)
+        except:
+            raise TypeError('MXNet Backend: The inputs are not valid for less operation.')
+    return out
 
 
 @keras_mxnet_symbol
@@ -1729,6 +1783,9 @@ def less_equal(x, y):
 
     # Returns
         A bool tensor.
+
+    # Raise
+        TypeError: if inputs are not valid.
     """
     scalar = False
     if isinstance(x, KerasSymbol):
@@ -1737,9 +1794,16 @@ def less_equal(x, y):
     if isinstance(y, KerasSymbol):
         y = y.symbol
         scalar = True
-    if scalar:
-        return KerasSymbol(mx.sym.Cast(x <= y, dtype='uint8'))
-    return KerasSymbol(mx.sym.Cast(mx.sym.broadcast_lesser_equal(lhs=x, rhs=y), dtype='uint8'))
+    if isinstance(x, mx.sym.Symbol) and isinstance(y, mx.sym.Symbol):
+        out = KerasSymbol(mx.sym.Cast(mx.sym.broadcast_lesser_equal(lhs=x, rhs=y), dtype='uint8'))
+    elif scalar:
+        out = KerasSymbol(mx.sym.Cast(x <= y, dtype='uint8'))
+    else:
+        try:
+            out = np.less(x, y)
+        except:
+            raise TypeError('MXNet Backend: The inputs are not valid for less_equal operation.')
+    return out
 
 
 @keras_mxnet_symbol
@@ -2605,7 +2669,7 @@ def rnn(step_function, inputs, initial_states,
         warnings.warn('MXNet Backend: `unroll=False` is not supported yet in RNN. Since the input_shape is known, '
                       'setting `unroll=True` and continuing the execution.'
                       'More Details - '
-                      'https://github.com/awslabs/keras-apache-mxnet/tree/master/docs/mxnet_backend/using_rnn_with_mxnet_backend.md',
+                      'https://github.com/awslabs/keras-apache-mxnet/tree/master/docs/mxnet_backend/using_rnn_with_mxnet_backend.md',   # nopep8
                       stacklevel=2)  # nopep8
 
     # Split the inputs across time dimension and generate the list of inputs
@@ -2846,7 +2910,7 @@ def softsign(x):
 
 
 @keras_mxnet_symbol
-def categorical_crossentropy(target, output, from_logits=False):
+def categorical_crossentropy(target, output, from_logits=False, axis=-1):
     """Categorical crossentropy between an output tensor and a target tensor.
 
     # Arguments
@@ -2860,9 +2924,16 @@ def categorical_crossentropy(target, output, from_logits=False):
     # Returns
         Output tensor.
     """
-    axis = ndim(output) - 1
+    output_dimensions = list(range(ndim(output)))
+    if axis != -1 and axis not in output_dimensions:
+        raise ValueError(
+            '{}{}{}'.format(
+                'Unexpected channels axis {}. '.format(axis),
+                'Expected to be -1 or one of the axes of `output`, ',
+                'which has {} dimensions.'.format(len(int_shape(output)))))
+
     mx_output = output.symbol
-    # scale predictions so that the class probas of each sample sum to 1
+    # scale predictions so that the class probabilities of each sample sum to 1
     if from_logits:
         mx_output = mx.sym.softmax(mx_output, axis=axis)
     else:
@@ -2877,7 +2948,8 @@ def categorical_crossentropy(target, output, from_logits=False):
     return KerasSymbol(mx_output)
 
 
-def sparse_categorical_crossentropy(target, output, from_logits=False):
+@keras_mxnet_symbol
+def sparse_categorical_crossentropy(target, output, from_logits=False, axis=-1):
     """Categorical crossentropy with integer targets.
 
     # Arguments
@@ -2891,7 +2963,29 @@ def sparse_categorical_crossentropy(target, output, from_logits=False):
     # Returns
         Output tensor.
     """
-    raise NotImplementedError('MXNet Backend: Sparse operations are not supported yet.')
+    output_dimensions = list(range(ndim(output)))
+    if axis != -1 and axis not in output_dimensions:
+        raise ValueError(
+            '{}{}{}'.format(
+                'Unexpected channels axis {}. '.format(axis),
+                'Expected to be -1 or one of the axes of `output`, ',
+                'which has {} dimensions.'.format(len(int_shape(output)))))
+
+    mx_output = output.symbol
+    # scale predictions so that the class probabilities of each sample sum to 1
+    if from_logits:
+        mx_output = mx.sym.softmax(mx_output, axis=axis)
+    else:
+        mx_output = mx.sym.broadcast_div(mx_output, mx.sym.sum(mx_output,
+                                                               axis=axis,
+                                                               keepdims=True))
+    # clip to prevent NaN's and Inf's
+    mx_output = mx.sym.clip(mx_output, a_min=epsilon(), a_max=1.0 - epsilon())
+    # For this operation, the probability of a given label is considered exclusive.
+    mx_output = mx.sym.pick(mx_output, target.symbol, axis=axis, keepdims=True)
+    mx_output = - mx.sym.log(mx_output, axis=axis)
+    # reshape to input's shape
+    return reshape(KerasSymbol(mx_output), target.shape)
 
 
 @keras_mxnet_symbol
@@ -3065,6 +3159,10 @@ def conv1d(x, kernel, strides=1, padding='valid',
         # X original shape (batch, length, input_dim)
         # Add a dimension to X to Make it (batch, length, 1, input_dim)
         x = expand_dims(x, axis=2)
+        # Add dimension to kernel
+        # for channels last: kernel_shape = kernel_size + (input_dim, filters)
+        # it will become: (kernel_size, 1, input_dim, filters)
+        kernel = expand_dims(kernel, axis=1)
         # update x._keras_shape
         if shape is not None:
             x._keras_shape = (shape[0], shape[1], 1, shape[2])
@@ -3072,15 +3170,16 @@ def conv1d(x, kernel, strides=1, padding='valid',
         # X original shape (batch, input_dim, length)
         # Add a dimension to X to make it (batch, input_dim, length, 1)
         x = expand_dims(x, axis=3)
+        # Add dimension to kernel
+        # for channels first: kernel_shape = (filters, input_dim) + kernel_size
+        # it will become: (filters, input_dim, kernel_size, 1)
+        kernel = expand_dims(kernel, axis=3)
         if shape is not None:
             x._keras_shape = (shape[0], shape[1], shape[2], 1)
 
     # update dilation rate, strides
     dilation_rate = (dilation_rate, 1)
     strides = (strides, 1)
-    # add dim to kernel (always same format independently of data_format)
-    # i.e. (rows, 1, input_depth, depth)
-    kernel = expand_dims(kernel, axis=1)
 
     output = _convnd(x, kernel, name='conv1d', strides=strides, filter_dilation=dilation_rate,
                      padding_mode=padding, data_format=data_format)
@@ -3170,6 +3269,28 @@ def conv2d_transpose(x, kernel, output_shape, strides=(1, 1),
     return _convnd_transpose(x, kernel, output_shape, name='conv2d_transpose', strides=strides, data_format=data_format)
 
 
+def separable_conv1d(x, depthwise_kernel, pointwise_kernel, strides=1,
+                     padding='valid', data_format=None, dilation_rate=1):
+    """1D convolution with separable filters.
+
+    # Arguments
+        x: input tensor
+        depthwise_kernel: convolution kernel for the depthwise convolution.
+        pointwise_kernel: kernel for the 1x1 convolution.
+        strides: strides integer.
+        padding: string, `"same"` or `"valid"`.
+        data_format: string, `"channels_last"` or `"channels_first"`.
+        dilation_rate: integer dilation rate.
+
+    # Returns
+        Output tensor.
+
+    # Raises
+        ValueError: if `data_format` is neither `"channels_last"` or `"channels_first"`.
+    """
+    raise NotImplementedError('MXNet Backend: Separable Conv1D not supported yet!')
+
+
 def separable_conv2d(x, depthwise_kernel, pointwise_kernel, strides=(1, 1),
                      padding='valid', data_format=None, dilation_rate=(1, 1)):
     """2D convolution with separable filters.
@@ -3192,8 +3313,9 @@ def separable_conv2d(x, depthwise_kernel, pointwise_kernel, strides=(1, 1),
     """
     """
     # mathematical implementation of complete separable conv2d
-    return _sp_convnd(x,  depthwise_kernel, pointwise_kernel, strides=strides, padding_mode=padding, data_format=data_format,
-                          filter_dilation=dilation_rate)
+    return _sp_convnd(x,  depthwise_kernel, pointwise_kernel, strides=strides,
+                      padding_mode=padding, data_format=data_format,
+                      filter_dilation=dilation_rate)
     """
     # depthwise conv2d
     dw_conv = depthwise_conv2d(x, depthwise_kernel, strides=strides, padding=padding, data_format=data_format,
@@ -3528,9 +3650,9 @@ def truncated_normal(shape, mean=0.0, stddev=1.0, dtype=None, seed=None):
         mx.random.seed(seed)
     else:
         mx.random.seed(int(10e6))
-    sym = mx.sym.random.normal(shape=shape, loc=mean, scale=stddev, dtype=dtype)
-    sym = mx.sym.clip(data=sym, a_min=mean - 2 * stddev, a_max=mean + 2 * stddev)
-    return KerasSymbol(sym)
+    ran = mx.sym.random.normal(shape=shape, loc=mean, scale=stddev, dtype=dtype)
+    res = mx.sym.clip(data=ran, a_min=mean - 2 * stddev, a_max=mean + 2 * stddev)
+    return KerasSymbol(res)
 
 
 # CTC(Connectionist Temporal Classification)
@@ -3811,8 +3933,6 @@ class KerasSymbol(object):
             in_slice = (in_slice,)
         for i in in_slice:
             if isinstance(i, int):
-               # if i < 0:
-                #    mx.sym.slice_axis(in_slice, axis=abs(i), begin=i, end=i+1)
                 begin.append(i)
                 end.append(i + 1)
             elif isinstance(i, slice):
@@ -4531,6 +4651,40 @@ def _poolnd(x, name, pool_size, strides, padding_mode='valid',
     return result
 
 
+def get_mxnet_model_info(model):
+    """Get native MXNet model details for given Keras Model.
+    `data_names` and `data_shapes` are returned that can be used to bind the model in MXNet Module.
+    `data_names` and `data_shapes` represents input layer name and shape.
+    You can change the first dimension of data_shapes to match batch size for inference.
+
+    Note: You should use `save_mxnet_model()` API for saving the model in native MXNet model format.
+
+    # Arguments
+        model: Keras model instance from which to extract MXNet model details.
+
+    # Returns
+        data_names, data_shapes
+
+    # Raises
+        AssertionError if Model is not compiled.
+    """
+    assert model is not None, 'MXNet Backend: Invalid state. Model cannot be None.'
+
+    # Underlying MXNet model for Inference in native MXNet engine.
+    symbol = model._pred_mxnet_symbol
+    module = model._module
+
+    assert symbol is not None, 'MXNet Backend: Invalid state. MXNet Symbol cannot be None.'
+    assert module is not None, 'MXNet Backend: Invalid state. MXNet Module cannot be None.'
+
+    # Get Module Input data_names and data_shapes.
+    # This info will be useful for users to easily bind the exported model in MXNet.
+    pred_module = module._buckets['pred']
+    data_names = pred_module.data_names
+    data_shapes = pred_module.data_shapes
+    return data_names, data_shapes
+
+
 def get_model():
     """Prepares Model class that can be used for training a Keras model with MXNet backend.
     Inherits and extends keras.engine.Model class.
@@ -4542,16 +4696,27 @@ def get_model():
     engine = importlib.import_module('keras.engine.training')
 
     class Model(engine.Model):
-        """The `Model` class adds training & evaluation routines to a `Container`. This class extends
+        """The `Model` class adds training & evaluation routines to a `Network`. This class extends
         keras.engine.Model to add MXNet Module to perform training and inference with MXNet backend.
         """
+        def __init__(self, *args, **kwargs):
+            if 'name' not in kwargs:
+                prefix = self.__class__.__name__.lower()
+                name = prefix + '_' + str(get_uid(prefix))
+                kwargs['name'] = name
 
-        def __init__(self, inputs, outputs, name=None, context=None, kvstore='device', **kwargs):
-            super(Model, self).__init__(inputs, outputs, name)
-            self._num_data = len(self.inputs)
-            self._num_label = len(self.outputs) + len(self.output_names)
-            self._context = self.get_mxnet_context(context)
-            self._kvstore = kvstore
+            self.name = kwargs['name']
+
+            super(Model, self).__init__(*args, **kwargs)
+
+            if 'context' not in kwargs:
+                kwargs['context'] = None
+
+            if 'kvstore' not in kwargs:
+                kwargs['kvstore'] = 'device'
+
+            self._context = self.get_mxnet_context(kwargs['context'])
+            self._kvstore = kwargs['kvstore']
 
             self._data_names = None
             self._label_names = None
@@ -4571,19 +4736,38 @@ def get_model():
             self._weights_dirty = None
             self._module = None
 
-            # Create Module for Inference
             self.compiled = False
-            self._create_predict_module()
 
-        def compile(self, optimizer, loss, metrics=None, loss_weights=None,
+            if self.built:
+                self._num_data = len(self.inputs)
+                self._num_label = len(self.outputs) + len(self.output_names)
+                # Create Module for Inference
+                self._create_predict_module()
+            else:
+                self._num_data = None
+                self._num_label = None
+
+        def compile(self, optimizer, loss=None, metrics=None, loss_weights=None,
                     sample_weight_mode=None, **kwargs):
             super(Model, self).compile(
                 optimizer, loss, metrics, loss_weights,
                 sample_weight_mode, **kwargs)
 
+            if not self.built:
+                # Model is not compilable because
+                # it does not know its number of inputs
+                # and outputs, nor their shapes and names.
+                # We will compile after the first
+                # time the model gets called on training data.
+                return
+
             # If context is passed in kwargs
             if 'context' in kwargs:
                 self._context = self.get_mxnet_context(kwargs['context'])
+
+            if self.built:
+                self._num_data = len(self.inputs)
+                self._num_label = len(self.outputs) + len(self.output_names)
 
             # set the data and label
             self._data_names = [x.name for x in self.inputs if x]
@@ -4765,6 +4949,11 @@ def get_model():
             def predict_function(inputs):
                 # used predict only module if predict is called without compile
                 if not self.compiled:
+                    if self.built:
+                        self._num_data = len(self.inputs)
+                        self._num_label = len(self.outputs) + len(self.output_names)
+                        # Create Module for Inference
+                        self._create_predict_module()
                     self._module = self._predict_only_module
                     set_model(self)
 
@@ -4884,11 +5073,47 @@ def get_model():
     return Model
 
 
+def get_sequential_model():
+    """Prepares Sequential Model class that can be used for training a Keras Sequential Model with MXNet backend.
+    Inherits and extends keras.engine.Model and keras.engine.Sequential class.
+
+    # Returns
+        MXNet Sequential Model reference
+    """
+    import importlib
+    sequential = importlib.import_module('keras.engine.sequential')
+    engine = importlib.import_module('keras.engine.training')
+
+    class Sequential(sequential.Sequential, engine.Model):
+        """Linear stack of layers. This class extends keras.engine.Sequential to add MXNet Module to perform training
+        and inference with MXNet backend.
+        """
+        def __init__(self, layers=None, *args, **kwargs):
+            if 'name' not in kwargs:
+                prefix = self.__class__.__name__.lower()
+                name = prefix + '_' + str(get_uid(prefix))
+                kwargs['name'] = name
+
+            self.name = kwargs['name']
+            engine.Model.__init__(self, *args, **kwargs)
+
+            # Add to the model any layers passed to the constructor.
+            if layers:
+                for layer in layers:
+                    self.add(layer)
+
+    return Sequential
+
+
 def get_optimizers():
     import importlib
     optimizers = importlib.import_module('keras.optimizers')
 
     class MXOptimizer(optimizers.Optimizer, mx.optimizer.Optimizer):
+        """Custom MXNet Optimizer wrapping Keras Optimizer.
+        This is required because we cannot use Keras optimizer directly as MXNet backend does not
+        support symbolic optimizers.
+        """
         def __init__(self, lr, decay):
             super(MXOptimizer, self).__init__()
             self.lr = variable(lr)
@@ -4904,6 +5129,18 @@ def get_optimizers():
             return config
 
     class SGD(MXOptimizer, mx.optimizer.SGD):
+        """Stochastic gradient descent optimizer.
+
+        Includes support for momentum,
+        learning rate decay, and Nesterov momentum.
+
+        # Arguments
+            lr: float >= 0. Learning rate.
+            momentum: float >= 0. Parameter that accelerates SGD
+                in the relevant direction and dampens oscillations.
+            decay: float >= 0. Learning rate decay over each update.
+            nesterov: boolean. Whether to apply Nesterov momentum.
+        """
         def __init__(self, lr=0.01, momentum=0., decay=0.,
                      nesterov=False, clipnorm=None, **kwargs):
             mx.optimizer.SGD.__init__(self, learning_rate=lr, momentum=momentum, clip_gradient=clipnorm, **kwargs)
@@ -4917,6 +5154,24 @@ def get_optimizers():
             return dict(list(base_config.items()) + list(config.items()))
 
     class Adagrad(MXOptimizer, mx.optimizer.AdaGrad):
+        """Adagrad optimizer.
+
+        Adagrad is an optimizer with parameter-specific learning rates,
+        which are adapted relative to how frequently a parameter gets
+        updated during training. The more updates a parameter receives,
+        the smaller the updates.
+
+        It is recommended to leave the parameters of this optimizer
+        at their default values.
+
+        # Arguments
+            lr: float >= 0. Initial learning rate.
+            epsilon: float >= 0. If `None`, defaults to `K.epsilon()`.
+            decay: float >= 0. Learning rate decay over each update.
+
+        # References
+            - [Adaptive Subgradient Methods for Online Learning and Stochastic Optimization](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf)  # nopep8
+        """
         def __init__(self, lr=0.01, epsilon=1e-8, decay=0., clipnorm=None, **kwargs):
             mx.optimizer.AdaGrad.__init__(self, learning_rate=lr, eps=epsilon, clip_gradient=clipnorm, **kwargs)
             MXOptimizer.__init__(self, lr, decay)
@@ -4929,6 +5184,30 @@ def get_optimizers():
             return dict(list(base_config.items()) + list(config.items()))
 
     class Adadelta(MXOptimizer, mx.optimizer.AdaDelta):
+        """Adadelta optimizer.
+
+        Adadelta is a more robust extension of Adagrad
+        that adapts learning rates based on a moving window of gradient updates,
+        instead of accumulating all past gradients. This way, Adadelta continues
+        learning even when many updates have been done. Compared to Adagrad, in the
+        original version of Adadelta you don't have to set an initial learning
+        rate. In this version, initial learning rate and decay factor can
+        be set, as in most other Keras optimizers.
+
+        It is recommended to leave the parameters of this optimizer
+        at their default values.
+
+        # Arguments
+            lr: float >= 0. Initial learning rate, defaults to 1.
+                It is recommended to leave it at the default value.
+            rho: float >= 0. Adadelta decay factor, corresponding to fraction of
+                gradient to keep at each time step.
+            epsilon: float >= 0. Fuzz factor. If `None`, defaults to `K.epsilon()`.
+            decay: float >= 0. Initial learning rate decay.
+
+        # References
+            - [Adadelta - an adaptive learning rate method](http://arxiv.org/abs/1212.5701)
+        """
         def __init__(self, lr=1.0, rho=0.95, epsilon=1e-8, decay=0., clipnorm=None, **kwargs):
             mx.optimizer.AdaDelta.__init__(self, rho=rho, epsilon=epsilon, clip_gradient=clipnorm, **kwargs)
             MXOptimizer.__init__(self, lr, decay)
@@ -4942,6 +5221,24 @@ def get_optimizers():
             return dict(list(base_config.items()) + list(config.items()))
 
     class Adam(MXOptimizer, mx.optimizer.Adam):
+        """Adam optimizer.
+
+        Default parameters follow those provided in the original paper.
+
+        # Arguments
+            lr: float >= 0. Learning rate.
+            beta_1: float, 0 < beta < 1. Generally close to 1.
+            beta_2: float, 0 < beta < 1. Generally close to 1.
+            epsilon: float >= 0. Fuzz factor. If `None`, defaults to `K.epsilon()`.
+            decay: float >= 0. Learning rate decay over each update.
+            amsgrad: boolean. Whether to apply the AMSGrad variant of this
+                algorithm from the paper "On the Convergence of Adam and
+                Beyond".
+
+        # References
+            - [Adam - A Method for Stochastic Optimization](http://arxiv.org/abs/1412.6980v8)
+            - [On the Convergence of Adam and Beyond](https://openreview.net/forum?id=ryQu7f-RZ)
+        """
         def __init__(self, lr=0.001, beta_1=0.9, beta_2=0.999,
                      epsilon=1e-8, decay=0., clipnorm=None, **kwargs):
             mx.optimizer.Adam.__init__(self, learning_rate=lr, beta1=beta_1, beta2=beta_2,
@@ -4958,6 +5255,20 @@ def get_optimizers():
             return dict(list(base_config.items()) + list(config.items()))
 
     class Adamax(MXOptimizer, mx.optimizer.Adamax):
+        """Adamax optimizer from Adam paper's Section 7.
+
+        It is a variant of Adam based on the infinity norm.
+        Default parameters follow those provided in the paper.
+
+        # Arguments
+            lr: float >= 0. Learning rate.
+            beta_1/beta_2: floats, 0 < beta < 1. Generally close to 1.
+            epsilon: float >= 0. Fuzz factor. If `None`, defaults to `K.epsilon()`.
+            decay: float >= 0. Learning rate decay over each update.
+
+        # References
+            - [Adam - A Method for Stochastic Optimization](http://arxiv.org/abs/1412.6980v8)
+        """
         def __init__(self, lr=0.002, beta_1=0.9, beta_2=0.999, decay=0., clipnorm=None,
                      epsilon=1e-8, **kwargs):
             mx.optimizer.Adamax.__init__(self, learning_rate=lr, beta1=beta_1, beta2=beta_2,
@@ -4975,6 +5286,24 @@ def get_optimizers():
             return dict(list(base_config.items()) + list(config.items()))
 
     class Nadam(MXOptimizer, mx.optimizer.Nadam):
+        """Nesterov Adam optimizer.
+
+        Much like Adam is essentially RMSprop with momentum,
+        Nadam is Adam RMSprop with Nesterov momentum.
+
+        Default parameters follow those provided in the paper.
+        It is recommended to leave the parameters of this optimizer
+        at their default values.
+
+        # Arguments
+            lr: float >= 0. Learning rate.
+            beta_1/beta_2: floats, 0 < beta < 1. Generally close to 1.
+            epsilon: float >= 0. Fuzz factor. If `None`, defaults to `K.epsilon()`.
+
+        # References
+            - [Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
+            - [On the importance of initialization and momentum in deep learning](http://www.cs.toronto.edu/~fritz/absps/momentum.pdf)  # nopep8
+        """
         def __init__(self, lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-8, decay=0., clipnorm=None,
                      schedule_decay=0.004, **kwargs):
             mx.optimizer.Nadam.__init__(self, learning_rate=lr, beta1=beta_1, beta2=beta_2, epsilon=epsilon,
@@ -4991,6 +5320,24 @@ def get_optimizers():
             return dict(list(base_config.items()) + list(config.items()))
 
     class RMSprop(MXOptimizer, mx.optimizer.RMSProp):
+        """RMSProp optimizer.
+
+        It is recommended to leave the parameters of this optimizer
+        at their default values
+        (except the learning rate, which can be freely tuned).
+
+        This optimizer is usually a good choice for recurrent
+        neural networks.
+
+        # Arguments
+            lr: float >= 0. Learning rate.
+            rho: float >= 0.
+            epsilon: float >= 0. Fuzz factor. If `None`, defaults to `K.epsilon()`.
+            decay: float >= 0. Learning rate decay over each update.
+
+        # References
+            - [rmsprop: Divide the gradient by a running average of its recent magnitude](http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)  # nopep8
+        """
         def __init__(self, lr=0.001, rho=0.9, epsilon=1e-8, decay=0., clipnorm=None, **kwargs):
             mx.optimizer.RMSProp.__init__(self, learning_rate=lr, gamma1=rho, epsilon=epsilon,
                                           clip_gradient=clipnorm, **kwargs)
