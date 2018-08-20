@@ -1248,7 +1248,7 @@ def sum(x, axis=None, keepdims=False):
         A tensor with sum of `x`.
     """
     axis = _normalize_axis(axis, ndim(x))
-    return KerasSymbol(mx.sym.sum(data=x.symbol, axis=axis, keepdims=keepdims))
+    return KerasSymbol(mx.symbol.sparse.sum(data=x.symbol, axis=axis, keepdims=keepdims))
 
 
 @keras_mxnet_symbol
@@ -1366,9 +1366,9 @@ def mean(x, axis=None, keepdims=False):
     if dtype(x) == 'uint8':
         x = cast(x, floatx())
     if axis is not None:
-        ret = mx.sym.mean(data=x.symbol, axis=axis, keepdims=keepdims)
+        ret = mx.symbol.sparse.mean(data=x.symbol, axis=axis, keepdims=keepdims)
     else:
-        ret = mx.sym.mean(data=x.symbol, keepdims=keepdims)
+        ret = mx.symbol.sparse.mean(data=x.symbol, keepdims=keepdims)
     return KerasSymbol(ret)
 
 
@@ -2682,11 +2682,11 @@ def rnn(step_function, inputs, initial_states,
         inputs.reverse()
 
     # Assume learning phase is a placeholder tensor.(F = test, T = train)
-    # Some Keras layers (e.g. Dropout, BatchNormalization) behave differently at
+    # Some Keras layers (e.g. Dropout, BatchNormalization) behave differently at
     #  training time and testing time. You can tell whether a layer uses the
-    # "learning phase" (train/test) by printing layer.uses_learning_phase, a
-    # boolean: True if the layer has a different behavior in training mode and
-    # test mode, False otherwise.
+    # "learning phase" (train/test) by printing layer.uses_learning_phase, a
+    # boolean: True if the layer has a different behavior in training mode and
+    # test mode, False otherwise.
     global uses_learning_phase
     uses_learning_phase = False
 

@@ -1702,6 +1702,56 @@ class TestBackend(object):
             assert k_s_d.shape == k_d.shape
             assert_allclose(k_s_d, k_d, atol=1e-05)
 
+    @pytest.mark.skipif((K.backend() != 'mxnet'),
+                        reason='Testing only for MXNet backend')
+    def test_sparse_sum(self):
+        x_d = np.array([0, 7, 2, 3], dtype=np.float32)
+        x_r = np.array([0, 2, 2, 3], dtype=np.int64)
+        x_c = np.array([4, 3, 2, 3], dtype=np.int64)
+
+        x_sparse = sparse.csr_matrix((x_d, (x_r, x_c)), shape=(4, 5))
+        x_dense = x_sparse.toarray()
+
+        W = np.random.random((5, 4))
+
+        k_s = K.eval(K.sum(K.variable(x_sparse), axis=0))
+        k_d = K.eval(K.sum(K.variable(x_dense), axis=0))
+
+        assert k_s.shape == k_d.shape
+        assert_allclose(k_s, k_d, atol=1e-05)
+
+    @pytest.mark.skipif((K.backend() != 'mxnet'),
+                        reason='Testing only for MXNet backend')
+    def test_sparse_mean(self):
+        x_d = np.array([0, 7, 2, 3], dtype=np.float32)
+        x_r = np.array([0, 2, 2, 3], dtype=np.int64)
+        x_c = np.array([4, 3, 2, 3], dtype=np.int64)
+
+        x_sparse = sparse.csr_matrix((x_d, (x_r, x_c)), shape=(4, 5))
+        x_dense = x_sparse.toarray()
+
+        k_s = K.eval(K.mean(K.variable(x_sparse), axis=0))
+        k_d = K.eval(K.mean(K.variable(x_dense), axis=0))
+
+        assert k_s.shape == k_d.shape
+        assert_allclose(k_s, k_d, atol=1e-05)
+
+    @pytest.mark.skipif((K.backend() != 'mxnet'),
+                        reason='Testing only for MXNet backend')
+    def test_sparse_mean_axis_none(self):
+        x_d = np.array([0, 7, 2, 3], dtype=np.float32)
+        x_r = np.array([0, 2, 2, 3], dtype=np.int64)
+        x_c = np.array([4, 3, 2, 3], dtype=np.int64)
+
+        x_sparse = sparse.csr_matrix((x_d, (x_r, x_c)), shape=(4, 5))
+        x_dense = x_sparse.toarray()
+
+        k_s = K.eval(K.mean(K.variable(x_sparse)))
+        k_d = K.eval(K.mean(K.variable(x_dense)))
+
+        assert k_s.shape == k_d.shape
+        assert_allclose(k_s, k_d, atol=1e-05)
+
     @pytest.mark.skipif(K.backend() == 'cntk' or K.backend() == 'mxnet', reason='Not supported.')
     def test_map(self):
         x = np.random.rand(10, 3).astype(np.float32)
