@@ -1248,7 +1248,7 @@ def sum(x, axis=None, keepdims=False):
         A tensor with sum of `x`.
     """
     axis = _normalize_axis(axis, ndim(x))
-    return KerasSymbol(mx.symbol.sparse.sum(data=x.symbol, axis=axis, keepdims=keepdims))
+    return KerasSymbol(mx.sym.sum(data=x.symbol, axis=axis, keepdims=keepdims))
 
 
 @keras_mxnet_symbol
@@ -1366,9 +1366,9 @@ def mean(x, axis=None, keepdims=False):
     if dtype(x) == 'uint8':
         x = cast(x, floatx())
     if axis is not None:
-        ret = mx.symbol.sparse.mean(data=x.symbol, axis=axis, keepdims=keepdims)
+        ret = mx.sym.mean(data=x.symbol, axis=axis, keepdims=keepdims)
     else:
-        ret = mx.symbol.sparse.mean(data=x.symbol, keepdims=keepdims)
+        ret = mx.sym.mean(data=x.symbol, keepdims=keepdims)
     return KerasSymbol(ret)
 
 
