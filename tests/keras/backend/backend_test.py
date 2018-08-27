@@ -1718,7 +1718,6 @@ class TestBackend(object):
         k_d = K.eval(K.sum(dense_var, axis=0))
 
         assert K.is_sparse(test_var)
-        assert K.is_sparse(dense_var) == False
         assert k_s.shape == k_d.shape
         assert_allclose(k_s, k_d, atol=1e-05)
 
@@ -1738,7 +1737,6 @@ class TestBackend(object):
         k_d = K.eval(K.mean(dense_var, axis=0))
 
         assert K.is_sparse(test_var)
-        assert K.is_sparse(dense_var) == False
         assert k_s.shape == k_d.shape
         assert_allclose(k_s, k_d, atol=1e-05)
 
@@ -1758,7 +1756,6 @@ class TestBackend(object):
         k_d = K.eval(K.mean(dense_var))
 
         assert K.is_sparse(test_var)
-        assert K.is_sparse(dense_var) == False
         assert k_s.shape == k_d.shape
         assert_allclose(k_s, k_d, atol=1e-05)
 
@@ -1771,7 +1768,7 @@ class TestBackend(object):
 
         x_sparse_matrix = sparse.csr_matrix((x_d, (x_r, x_c)), shape=(4, 5))
 
-        assert K.is_sparse(x_sparse_matrix) == True
+        assert K.is_sparse(x_sparse_matrix)
 
     def test_is_sparse(self):
         x_d = np.array([0, 7, 2, 3], dtype=np.float32)
@@ -1781,7 +1778,7 @@ class TestBackend(object):
         x_sparse_matrix = sparse.csr_matrix((x_d, (x_r, x_c)), shape=(4, 5))
         test_var = K.variable(x_sparse_matrix)
 
-        assert K.is_sparse(test_var) == True
+        assert K.is_sparse(test_var)
 
     @pytest.mark.skipif((K.backend() != 'mxnet'),
                         reason='Testing only for MXNet backend')

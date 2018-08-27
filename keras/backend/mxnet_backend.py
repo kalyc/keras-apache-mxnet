@@ -591,6 +591,7 @@ def eval(x):
     else:
         return x
 
+
 def _forward_pass(x):
     bind_values = dfs_get_bind_values(x)
     executor = x.symbol.simple_bind(mx.cpu(), grad_req='null')
