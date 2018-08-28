@@ -16,6 +16,7 @@ except ImportError:
     KMX = None
     warnings.warn('Could not import the MXNet backend')
 
+
 class TestMXNetSparse(object):
 
     @pytest.mark.skipif((K.backend() != 'mxnet'),

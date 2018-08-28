@@ -203,6 +203,8 @@ def to_dense(tensor):
         return tensor.stype('default')
     elif isinstance(tensor, KerasSymbol):
         return eval(tensor)
+    else:
+        return tensor
 
 
 def variable(value, dtype=None, name=None, constraint=None):
@@ -4174,7 +4176,7 @@ def dfs_get_bind_values(node_start):
     return bind_values
 
 
-def _keras_variable(name, shape, dtype, stype, is_vector=False, **kwargs):
+def _keras_variable(name, shape, dtype, stype='default', is_vector=False, **kwargs):
     if dtype is None:
         dtype = floatx()
     v = mx.sym.Variable(name, shape=shape, stype=stype, dtype=dtype, **kwargs)
