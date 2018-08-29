@@ -401,17 +401,18 @@ def placeholder(shape=None, ndim=None, dtype=None, sparse=False, name=None):
         raise ValueError('MXNet Backend: Specify either a shape or ndim value.')
     name = _prepare_name(name, 'placeholder')
 
+    if shape:
+        shape = tuple([0 if dim is None else dim for dim in shape])
+    else:
+        shape = tuple([0 for _ in range(ndim)])
+
     if sparse:
         sym = _keras_variable(name, shape=shape, dtype=dtype, stype='csr')
         sym._keras_shape = tuple([d if d != 0 else None for d in shape])
         sym._mxnet_placeholder = True
         sym._uses_learning_phase = False
+        print(sym)
         return sym
-
-    if shape:
-        shape = tuple([0 if dim is None else dim for dim in shape])
-    else:
-        shape = tuple([0 for _ in range(ndim)])
 
     sym = _keras_variable(name, shape=shape, dtype=dtype, stype='default')
     sym._keras_shape = tuple([d if d != 0 else None for d in shape])
@@ -592,15 +593,6 @@ def eval(x):
         return x.asnumpy()
     else:
         return x
-
-
-def _forward_pass(x):
-    bind_values = dfs_get_bind_values(x)
-    executor = x.symbol.simple_bind(mx.cpu(), grad_req='null')
-    for v in executor.arg_dict:
-        bind_values[v].copyto(executor.arg_dict[v])
-    outputs = executor.forward(is_train=learning_phase())
-    return outputs
 
 
 def zeros(shape, dtype=None, name=None):
@@ -4174,6 +4166,15 @@ def dfs_get_bind_values(node_start):
     for key in visited:
         bind_values.update(key.get_bind_values())
     return bind_values
+
+
+def _forward_pass(x):
+    bind_values = dfs_get_bind_values(x)
+    executor = x.symbol.simple_bind(mx.cpu(), grad_req='null')
+    for v in executor.arg_dict:
+        bind_values[v].copyto(executor.arg_dict[v])
+    outputs = executor.forward(is_train=learning_phase())
+    return outputs
 
 
 def _keras_variable(name, shape, dtype, stype='default', is_vector=False, **kwargs):
