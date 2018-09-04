@@ -167,12 +167,12 @@ def cast_to_floatx(x):
 
 
 def is_sparse(tensor):
-    if isinstance(tensor, KerasSymbol):
+    if hasattr(tensor, 'tocoo'):
+        return True
+    elif isinstance(tensor, KerasSymbol):
         if isinstance(_forward_pass(tensor)[0], mx.ndarray.sparse.CSRNDArray) or \
                 isinstance(_forward_pass(tensor)[0], mx.ndarray.sparse.RowSparseNDArray):
                 return True
-    elif hasattr(tensor, 'tocoo'):
-        return True
     return False
 
 
@@ -411,7 +411,6 @@ def placeholder(shape=None, ndim=None, dtype=None, sparse=False, name=None):
         sym._keras_shape = tuple([d if d != 0 else None for d in shape])
         sym._mxnet_placeholder = True
         sym._uses_learning_phase = False
-        print(sym)
         return sym
 
     sym = _keras_variable(name, shape=shape, dtype=dtype, stype='default')
