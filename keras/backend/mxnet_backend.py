@@ -1203,13 +1203,18 @@ def gather(reference, indices):
 
 
 @keras_mxnet_symbol
-def embedding(data, weight, input_dim, output_dim):
+def embedding(data, weight, input_dim, output_dim, sparse_grad=False):
     # check if inputs are KerasSymbol
     if isinstance(data, KerasSymbol):
         data = data.symbol
     if isinstance(weight, KerasSymbol):
         weight = weight.symbol
-    return KerasSymbol(mx.sym.Embedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim))
+    if sparse_grad:
+        # Use mxnet.sym.contrib.SparseEmbedding API - https://mxnet.apache.org/api/python/symbol/contrib.html
+        sym = mx.sym.contrib.SparseEmbedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim,
+                                             deterministic=True)
+    sym = mx.sym.Embedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim)
+    return KerasSymbol(sym)
 
 
 # ELEMENT-WISE OPERATIONS

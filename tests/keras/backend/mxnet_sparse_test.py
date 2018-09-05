@@ -1,5 +1,6 @@
 import warnings
 
+import mxnet as mx
 import numpy as np
 import pytest
 import scipy.sparse as sparse
@@ -160,6 +161,14 @@ class TestMXNetSparse(object):
         assert k_s_d.shape == k_d.shape
         assert_allclose(k_s_d, k_d, atol=1e-05)
 
+    def _forward_pass(self, x):
+        bind_values = K.dfs_get_bind_values(x)
+        executor = x.symbol.simple_bind(mx.cpu(), grad_req='null')
+        for v in executor.arg_dict:
+            bind_values[v].copyto(executor.arg_dict[v])
+        outputs = executor.forward(is_train=K.learning_phase())
+        return outputs
+
     def test_sparse_embedding(self):
         # Sparse data
         sparse_matrix = self.generate_test_sparse_matrix()
@@ -171,6 +180,8 @@ class TestMXNetSparse(object):
 
         sparse_weight = sparse.csr_matrix((x_d, (x_r, x_c)), shape=(4, 5))
         test_sparse_weight = K.variable(sparse_weight)
+        assert K.is_sparse(sparse_weight)
+        assert K.is_sparse(test_sparse_data)
 
         # Dense data
         dense_matrix = sparse_matrix.toarray()
@@ -179,10 +190,14 @@ class TestMXNetSparse(object):
         dense_weight = sparse_weight.toarray()
         test_dense_weight = K.variable(dense_weight)
 
-        k_S = K.embedding(test_sparse_data, test_sparse_weight, 4, 5)
+        k_S = K.embedding(test_sparse_data, test_sparse_weight, 4, 5, sparse_grad=True)
         k_D = K.embedding(test_dense_data, test_dense_weight, 4, 5)
 
         assert k_S.shape == k_D.shape
+
+        x = self._forward_pass(k_S)
+        y = self._forward_pass(k_D)
+        assert x.sort() == y.sort()
 
 if __name__ == '__main__':
     pytest.main([__file__])
