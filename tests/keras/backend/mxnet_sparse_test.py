@@ -106,6 +106,7 @@ class TestMXNetSparse(object):
         assert k_s.shape == k_d.shape
         assert_allclose(k_s, k_d, atol=1e-05)
 
+<<<<<<< HEAD
     def test_sparse_concat(self):
         test_sparse_matrix_1 = self.generate_test_sparse_matrix()
         test_sparse_matrix_2 = self.generate_test_sparse_matrix()
@@ -164,6 +165,11 @@ class TestMXNetSparse(object):
     def _forward_pass(self, x):
         bind_values = K.dfs_get_bind_values(x)
         executor = x.symbol.simple_bind(mx.cpu(), grad_req='null')
+=======
+    def _get_data(self, tensor):
+        bind_values = K.dfs_get_bind_values(tensor)
+        executor = tensor.symbol.simple_bind(mx.cpu(), grad_req='null')
+>>>>>>> Update embedding API support in the layers/embeddings class
         for v in executor.arg_dict:
             bind_values[v].copyto(executor.arg_dict[v])
         outputs = executor.forward(is_train=K.learning_phase())
@@ -195,9 +201,10 @@ class TestMXNetSparse(object):
 
         assert k_S.shape == k_D.shape
 
-        x = self._forward_pass(k_S)
-        y = self._forward_pass(k_D)
+        x = self._get_data(k_S)
+        y = self._get_data(k_D)
         assert x.sort() == y.sort()
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

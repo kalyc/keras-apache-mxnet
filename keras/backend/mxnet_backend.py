@@ -2,12 +2,13 @@
 from __future__ import print_function
 
 import warnings
+from collections import defaultdict
+from functools import wraps
+from numbers import Number
+from subprocess import CalledProcessError
+
 import mxnet as mx
 import numpy as np
-from subprocess import CalledProcessError
-from numbers import Number
-from functools import wraps
-from collections import defaultdict
 
 from .common import floatx, epsilon, image_data_format
 
@@ -1211,10 +1212,9 @@ def embedding(data, weight, input_dim, output_dim, sparse_grad=False):
         weight = weight.symbol
     if sparse_grad:
         # Use mxnet.sym.contrib.SparseEmbedding API - https://mxnet.apache.org/api/python/symbol/contrib.html
-        sym = mx.sym.contrib.SparseEmbedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim,
-                                             deterministic=True)
-    sym = mx.sym.Embedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim)
-    return KerasSymbol(sym)
+        return KerasSymbol(mx.sym.Embedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim,
+                                            sparse_grad=True))
+    return KerasSymbol(mx.sym.Embedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim))
 
 
 # ELEMENT-WISE OPERATIONS
@@ -2698,7 +2698,8 @@ def rnn(step_function, inputs, initial_states,
         warnings.warn('MXNet Backend: `unroll=False` is not supported yet in RNN. Since the input_shape is known, '
                       'setting `unroll=True` and continuing the execution.'
                       'More Details - '
-                      'https://github.com/awslabs/keras-apache-mxnet/tree/master/docs/mxnet_backend/using_rnn_with_mxnet_backend.md',   # nopep8
+                      'https://github.com/awslabs/keras-apache-mxnet/tree/master/docs/mxnet_backend/using_rnn_with_mxnet_backend.md',
+                      # nopep8
                       stacklevel=2)  # nopep8
 
     # Split the inputs across time dimension and generate the list of inputs
@@ -4841,6 +4842,7 @@ def get_model():
         """The `Model` class adds training & evaluation routines to a `Network`. This class extends
         keras.engine.Model to add MXNet Module to perform training and inference with MXNet backend.
         """
+
         def __init__(self, *args, **kwargs):
             if 'name' not in kwargs:
                 prefix = self.__class__.__name__.lower()
@@ -5230,6 +5232,7 @@ def get_sequential_model():
         """Linear stack of layers. This class extends keras.engine.Sequential to add MXNet Module to perform training
         and inference with MXNet backend.
         """
+
         def __init__(self, layers=None, *args, **kwargs):
             if 'name' not in kwargs:
                 prefix = self.__class__.__name__.lower()
@@ -5256,6 +5259,7 @@ def get_optimizers():
         This is required because we cannot use Keras optimizer directly as MXNet backend does not
         support symbolic optimizers.
         """
+
         def __init__(self, lr, decay):
             super(MXOptimizer, self).__init__()
             self.lr = variable(lr)
@@ -5283,6 +5287,7 @@ def get_optimizers():
             decay: float >= 0. Learning rate decay over each update.
             nesterov: boolean. Whether to apply Nesterov momentum.
         """
+
         def __init__(self, lr=0.01, momentum=0., decay=0.,
                      nesterov=False, clipnorm=None, **kwargs):
             mx.optimizer.SGD.__init__(self, learning_rate=lr, momentum=momentum, clip_gradient=clipnorm, **kwargs)
@@ -5314,6 +5319,7 @@ def get_optimizers():
         # References
             - [Adaptive Subgradient Methods for Online Learning and Stochastic Optimization](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf)  # nopep8
         """
+
         def __init__(self, lr=0.01, epsilon=1e-8, decay=0., clipnorm=None, **kwargs):
             mx.optimizer.AdaGrad.__init__(self, learning_rate=lr, eps=epsilon, clip_gradient=clipnorm, **kwargs)
             MXOptimizer.__init__(self, lr, decay)
@@ -5350,6 +5356,7 @@ def get_optimizers():
         # References
             - [Adadelta - an adaptive learning rate method](http://arxiv.org/abs/1212.5701)
         """
+
         def __init__(self, lr=1.0, rho=0.95, epsilon=1e-8, decay=0., clipnorm=None, **kwargs):
             mx.optimizer.AdaDelta.__init__(self, rho=rho, epsilon=epsilon, clip_gradient=clipnorm, **kwargs)
             MXOptimizer.__init__(self, lr, decay)
@@ -5381,6 +5388,7 @@ def get_optimizers():
             - [Adam - A Method for Stochastic Optimization](http://arxiv.org/abs/1412.6980v8)
             - [On the Convergence of Adam and Beyond](https://openreview.net/forum?id=ryQu7f-RZ)
         """
+
         def __init__(self, lr=0.001, beta_1=0.9, beta_2=0.999,
                      epsilon=1e-8, decay=0., clipnorm=None, **kwargs):
             mx.optimizer.Adam.__init__(self, learning_rate=lr, beta1=beta_1, beta2=beta_2,
@@ -5411,6 +5419,7 @@ def get_optimizers():
         # References
             - [Adam - A Method for Stochastic Optimization](http://arxiv.org/abs/1412.6980v8)
         """
+
         def __init__(self, lr=0.002, beta_1=0.9, beta_2=0.999, decay=0., clipnorm=None,
                      epsilon=1e-8, **kwargs):
             mx.optimizer.Adamax.__init__(self, learning_rate=lr, beta1=beta_1, beta2=beta_2,
@@ -5446,6 +5455,7 @@ def get_optimizers():
             - [Nadam report](http://cs229.stanford.edu/proj2015/054_report.pdf)
             - [On the importance of initialization and momentum in deep learning](http://www.cs.toronto.edu/~fritz/absps/momentum.pdf)  # nopep8
         """
+
         def __init__(self, lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-8, decay=0., clipnorm=None,
                      schedule_decay=0.004, **kwargs):
             mx.optimizer.Nadam.__init__(self, learning_rate=lr, beta1=beta_1, beta2=beta_2, epsilon=epsilon,
@@ -5480,6 +5490,7 @@ def get_optimizers():
         # References
             - [rmsprop: Divide the gradient by a running average of its recent magnitude](http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)  # nopep8
         """
+
         def __init__(self, lr=0.001, rho=0.9, epsilon=1e-8, decay=0., clipnorm=None, **kwargs):
             mx.optimizer.RMSProp.__init__(self, learning_rate=lr, gamma1=rho, epsilon=epsilon,
                                           clip_gradient=clipnorm, **kwargs)

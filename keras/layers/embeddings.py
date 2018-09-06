@@ -11,6 +11,7 @@ from .. import constraints
 from ..engine.base_layer import Layer
 from ..legacy import interfaces
 
+py_all = all
 
 class Embedding(Layer):
     """Turns positive integers (indexes) into dense vectors of fixed size.
@@ -85,7 +86,6 @@ class Embedding(Layer):
             else:
                 kwargs['input_shape'] = (None,)
         super(Embedding, self).__init__(**kwargs)
-
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.embeddings_initializer = initializers.get(embeddings_initializer)
@@ -140,7 +140,10 @@ class Embedding(Layer):
         # K.gather is not working with Embedding layer using MXNet backend
         # Refer to this issue: https://github.com/awslabs/keras-apache-mxnet/issues/63
         if K.backend() == "mxnet":
-            out = K.embedding(inputs, self.embeddings, self.input_dim, self.output_dim)
+            if py_all([K.is_sparse(x) for x in inputs]):
+                out = K.embedding(inputs, self.embeddings, self.input_dim, self.output_dim, sparse_grad=True)
+            else:
+                out = K.embedding(inputs, self.embeddings, self.input_dim, self.output_dim)
         else:
             out = K.gather(self.embeddings, inputs)
         return out
