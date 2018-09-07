@@ -7,16 +7,24 @@ import time
 from keras import Model
 from keras.layers import Dense, Input
 from keras.optimizers import SGD
+from keras import backend as K
+import mxnet as mx
 
 
 def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, epochs):
     inputs = Input(shape=(10,), sparse=True)
+    #print(K.is_sparse(inputs))
+    #inputs = K.variable(train_data)
     predictions = Dense(10, activation='linear')(inputs)
-    model = Model(input=inputs, output=predictions)
+    model = Model(outputs=predictions, inputs=inputs)
 
-    sgd = SGD(lr=0.1, momentum=0.9)
+    if K.backend() == 'mxnet':
+        sgd = SGD(lr=0.01, momentum=0.01, lazy_update=False)
 
-    model.compile(loss='mse', optimizer=sgd, metrics=['accuracy'])
+    elif K.backend() == 'tensorflow':
+        sgd = SGD(lr=0.01, momentum=0.01)
+   
+    model.compile(loss='mse', optimizer=sgd)
 
     start = time.time()
     model.fit(train_data, train_label,
