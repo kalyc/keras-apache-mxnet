@@ -2046,8 +2046,8 @@ def concatenate(tensors, axis=-1):
 
     symbols = [t.symbol for t in tensors]
 
-    if py_all([is_sparse(t) for t in tensors]):
-        return KerasSymbol(mx.sym.sparse.concat(*symbols, dim=0))
+    if axis == 0 and py_all([is_sparse(t) for t in tensors]):
+        return KerasSymbol(mx.sym.sparse.concat(*symbols, dim=axis))
 
     return KerasSymbol(mx.sym.concat(*symbols, dim=axis))
 

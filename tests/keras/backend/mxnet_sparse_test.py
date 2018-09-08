@@ -113,7 +113,7 @@ class TestMXNetSparse(object):
         x_dense_1 = x_sparse_1.toarray()
         x_dense_2 = x_sparse_2.toarray()
 
-        k_s = K.concatenate(tensors=[K.variable(x_sparse_1), K.variable(x_sparse_2)])
+        k_s = K.concatenate(tensors=[K.variable(x_sparse_1), K.variable(x_sparse_2)], axis=0)
         assert K.is_sparse(k_s)
 
         k_s_d = K.eval(k_s)
@@ -151,13 +151,13 @@ class TestMXNetSparse(object):
         x_dense_1 = x_sparse_1.toarray()
         x_dense_2 = x_sparse_2.toarray()
 
-        k_s = K.concatenate(tensors=[K.variable(x_sparse_1), K.variable(x_dense_2)], axis=0)
+        k_s = K.concatenate(tensors=[K.variable(x_sparse_1), K.variable(x_dense_2)])
         assert not (K.is_sparse(k_s))
 
         k_s_d = K.eval(k_s)
 
         # mx.sym.sparse.concat only supported for axis=0
-        k_d = K.eval(K.concatenate(tensors=[K.variable(x_dense_1), K.variable(x_dense_2)], axis=0))
+        k_d = K.eval(K.concatenate(tensors=[K.variable(x_dense_1), K.variable(x_dense_2)]))
 
         assert k_s_d.shape == k_d.shape
         assert_allclose(k_s_d, k_d, atol=1e-05)
