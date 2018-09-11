@@ -16,7 +16,7 @@ def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, ep
     model = Model(outputs=predictions, inputs=inputs)
     model.summary()
 
-    sgd = SGD(lr=0.01, momentum=0.01)
+    sgd = SGD(lr=0.1, momentum=0.9)
 
     model.compile(loss='mse', optimizer=sgd, metrics=['accuracy'])
 
