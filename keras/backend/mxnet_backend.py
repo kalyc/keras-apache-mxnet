@@ -4222,25 +4222,24 @@ def dfs_get_bind_values(node_start):
      # Returns
         List of binding Tensor values in the computation graph.
     """
-    if node_start is not None:
-        stack_list = []
-        visited = set()
-        stack_list.append(node_start)
-        while len(stack_list) > 0:
-            cur_node = stack_list.pop()
-            if cur_node in visited:
+    stack_list = []
+    visited = set()
+    stack_list.append(node_start)
+    while len(stack_list) > 0:
+        cur_node = stack_list.pop()
+        if cur_node in visited:
+            continue
+        visited.add(cur_node)
+        next_nodes = cur_node.get_neighbor()
+        for i in next_nodes:
+            if i in visited:
                 continue
-            visited.add(cur_node)
-            next_nodes = cur_node.get_neighbor()
-            for i in next_nodes:
-                if i in visited:
-                    continue
-                else:
-                    stack_list.append(i)
-        bind_values = {}
-        for key in visited:
-            bind_values.update(key.get_bind_values())
-        return bind_values
+            else:
+                stack_list.append(i)
+    bind_values = {}
+    for key in visited:
+        bind_values.update(key.get_bind_values())
+    return bind_values
 
 
 def _forward_pass(x):
