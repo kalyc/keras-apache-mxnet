@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import math
 import hashlib
 import multiprocessing as mp
 import os
@@ -297,6 +298,13 @@ def validate_file(fpath, file_hash, algorithm='auto', chunk_size=65535):
         return True
     else:
         return False
+
+
+def prepare_sliced_sparse_data(data, batch_size):
+    index = np.arange(np.shape(data)[0])
+    np.random.shuffle(index)
+    n = math.floor(data.shape[0] / batch_size)
+    return data[:n * batch_size]
 
 
 class Sequence(object):

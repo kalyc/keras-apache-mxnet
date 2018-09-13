@@ -6,35 +6,57 @@ import time
 import mxnet as mx
 
 
-def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, epochs):
-    train_iter = mx.io.NDArrayIter(train_data, train_label, batch_size=batch_size, shuffle=True,
-                                   label_name='lin_reg_label', last_batch_handle='discard')
-    eval_iter = mx.io.NDArrayIter(eval_data, eval_label, batch_size=batch_size, shuffle=False,
-                                  label_name='lin_reg_label', last_batch_handle='discard')
+def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, epochs, start, is_sparse=True):
+    train_iter = mx.io.NDArrayIter(train_data, train_label, batch_size, last_batch_handle='discard', label_name='label')
 
-    X = mx.sym.Variable('data', stype='csr')
-    Y = mx.symbol.Variable('lin_reg_label', stype='csr')
-    fully_connected_layer = mx.sym.FullyConnected(data=X, name='fc1', num_hidden=10)
-    lro = mx.sym.LinearRegressionOutput(data=fully_connected_layer, label=Y, name="lro")
+    eval_iter = mx.io.NDArrayIter(eval_data, eval_label, batch_size=batch_size,
+                                  label_name='label', last_batch_handle='discard')
 
+    if is_sparse:
+        X = mx.sym.Variable('data', stype='csr')
+        weight = mx.symbol.Variable('weight', stype='row_sparse', shape=(train_data.shape[1], 1))
+    else:
+        X = mx.sym.Variable('data', stype='default')
+        weight = mx.symbol.Variable('weight', stype='default', shape=(train_data.shape[1], 1))
+
+    Y = mx.symbol.Variable('label')
+    pred = mx.sym.sparse.dot(X, weight)
+    lro = mx.sym.LinearRegressionOutput(data=pred, label=Y, name='lro')
+
+    # Create module
     model = mx.mod.Module(
         symbol=lro,
         data_names=['data'],
-        label_names=['lin_reg_label']
+        label_names=['label']
     )
 
-    start = time.time()
+    model.bind(data_shapes=train_iter.provide_data, label_shapes=train_iter.provide_label)
+    initializer = mx.initializer.Normal()
+    model.init_params(initializer=initializer)
+    sgd = mx.optimizer.SGD(learning_rate=0.1, momentum=0.9)
+    model.init_optimizer(optimizer=sgd)
 
-    model.fit(train_iter, eval_iter,
-              optimizer_params={'learning_rate': 0.1, 'momentum': 0.9},
-              num_epoch=epochs,
-              eval_metric='mse',
-              batch_end_callback=mx.callback.Speedometer(batch_size))
+    # Use mean square error as the metric
+    metric = mx.metric.create('MSE')
+
+    for epoch in range(epochs):
+        train_iter.reset()
+        metric.reset()
+        for batch in train_iter:
+            model.forward(batch, is_train=True)  # compute predictions
+            model.update_metric(metric, batch.label)  # accumulate prediction accuracy
+            model.backward()  # compute gradients
+            model.update()  # update parameters
+        print("Epoch %d, Metric = %s" % (epoch, metric.get()))
 
     print("MXNet Sparse Benchmark Results")
+    if is_sparse:
+        print("Dataset: Synthetic Sparse Data")
+    else:
+        print("Dataset: Synthetic Dense Data")
     print("Batch Size")
     print(batch_size)
-    print('Total Time')
+    print("Total Time")
     print(time.time() - start)
 
     metric = mx.metric.MSE()
