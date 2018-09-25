@@ -21,6 +21,15 @@
 |  C5.18X Large |   0  | 64  | 13.13 sec | 19.20 sec |
 |  C5.18X Large |   0  | 128  | 5.72 sec | 9.86 sec |
 
+### Results 
+| Instance Type | GPUs  | Batch Size  | MXNet (Time/Epoch) | Keras-MXNet (Time/Epoch)| Keras-TensorFlow (Time/Epoch)  |
+|-----|-----|-----|Sparse|Sparse| Sparse|
+|-----|-----|-----|-----|-----|-----|
+|  MacOS |   0  | 16  | 51.15 sec | 71.85 sec |
+|  MacOS |   0  | 32 | 20.82 sec | 54.31 sec |
+|  MacOS |   0  | 64  | 13.13 sec | 19.20 sec |
+|  MacOS |   0  | 128  | 5.72 sec | 9.86 sec |
+
 ### Note
 For reproducing above results set seed to `7` by adding this line in the `run_sparse_benchmark` script - `np.random.seed(7)`
 
