@@ -173,8 +173,9 @@ def is_sparse(tensor):
         return True
     elif isinstance(tensor, KerasSymbol):
         if len(tensor.get_bind_values()) > 0:
-            if isinstance(_forward_pass(tensor)[0], mx.ndarray.sparse.CSRNDArray) or \
-                    isinstance(_forward_pass(tensor)[0], mx.ndarray.sparse.RowSparseNDArray):
+            forward_pass_tensor = _forward_pass(tensor)[0]
+            if isinstance(forward_pass_tensor, mx.ndarray.sparse.CSRNDArray) or \
+                    isinstance(forward_pass_tensor, mx.ndarray.sparse.RowSparseNDArray):
                     return True
     return False
 
