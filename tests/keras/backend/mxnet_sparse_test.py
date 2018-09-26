@@ -105,7 +105,6 @@ class TestMXNetSparse(object):
         assert k_s.shape == k_d.shape
         assert_allclose(k_s, k_d, atol=1e-05)
 
-    @pytest.mark.skip('diabled temporary until sparse_concat is fixed ')
     def test_sparse_concat(self):
         test_sparse_matrix_1 = self.generate_test_sparse_matrix()
         test_sparse_matrix_2 = self.generate_test_sparse_matrix()
