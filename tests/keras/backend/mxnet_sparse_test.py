@@ -160,6 +160,29 @@ class TestMXNetSparse(object):
         assert k_s_d.shape == k_d.shape
         assert_allclose(k_s_d, k_d, atol=1e-05)
 
+    def test_sparse_embedding(self):
+        # Sparse data
+        sparse_matrix = self.generate_test_sparse_matrix()
+        test_sparse_data = K.variable(sparse_matrix)
+
+        x_d = np.array([0, 7, 1, 4], dtype=np.float32)
+        x_r = np.array([0, 2, 1, 3], dtype=np.int64)
+        x_c = np.array([0, 1, 2, 3], dtype=np.int64)
+
+        sparse_weight = sparse.csr_matrix((x_d, (x_r, x_c)), shape=(4, 5))
+        test_sparse_weight = K.variable(sparse_weight)
+
+        # Dense data
+        dense_matrix = sparse_matrix.toarray()
+        test_dense_data = K.variable(dense_matrix)
+
+        dense_weight = sparse_weight.toarray()
+        test_dense_weight = K.variable(dense_weight)
+
+        k_S = K.embedding(test_sparse_data, test_sparse_weight, 4, 5)
+        k_D = K.embedding(test_dense_data, test_dense_weight, 4, 5)
+
+        assert k_S.shape == k_D.shape
 
 if __name__ == '__main__':
     pytest.main([__file__])
