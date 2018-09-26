@@ -172,12 +172,7 @@ def is_sparse(tensor):
     if hasattr(tensor, 'tocoo'):
         return True
     elif isinstance(tensor, KerasSymbol):
-        if len(tensor.get_bind_values()) > 0:
-            forward_pass_tensor = _forward_pass(tensor)[0]
-            if isinstance(forward_pass_tensor, mx.ndarray.sparse.CSRNDArray) or \
-                    isinstance(forward_pass_tensor, mx.ndarray.sparse.RowSparseNDArray):
-                    return True
-        elif tensor.get_stype() == 'csr':
+        if tensor.get_stype() == 'csr':
             return True
     return False
 
@@ -2049,9 +2044,6 @@ def concatenate(tensors, axis=-1):
             axis = 0
 
     symbols = [t.symbol for t in tensors]
-
-    if axis == 0 and py_all([is_sparse(t) for t in tensors]):
-        return KerasSymbol(mx.sym.sparse.concat(*symbols, dim=axis), stype='csr')
 
     return KerasSymbol(mx.sym.concat(*symbols, dim=axis))
 
