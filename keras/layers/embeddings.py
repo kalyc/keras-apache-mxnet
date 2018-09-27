@@ -11,8 +11,6 @@ from .. import constraints
 from ..engine.base_layer import Layer
 from ..legacy import interfaces
 
-py_all = all
-
 
 class Embedding(Layer):
     """Turns positive integers (indexes) into dense vectors of fixed size.

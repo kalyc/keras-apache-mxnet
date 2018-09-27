@@ -1,6 +1,5 @@
 import warnings
 
-import mxnet as mx
 import numpy as np
 import pytest
 import scipy.sparse as sparse
