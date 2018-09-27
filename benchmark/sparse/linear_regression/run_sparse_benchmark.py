@@ -4,16 +4,14 @@ Prepare data for running benchmark on sparse linear regression model
 
 import argparse
 import time
+import numpy as np
 
-import os
 import keras_sparse_model
 import mxnet as mx
 import mxnet_sparse_model
 from scipy import sparse
+
 from keras import backend as K
-
-import numpy as np
-
 from keras.utils.data_utils import prepare_sliced_sparse_data
 
 
@@ -33,33 +31,16 @@ def invoke_benchmark(batch_size, epochs):
     eval_data = prepare_sliced_sparse_data(eval_data, batch_size)
     eval_label = prepare_sliced_sparse_data(eval_label, batch_size)
 
-    os.environ['KERAS_BACKEND'] = 'mxnet'
     print("Running Keras benchmark script on sparse data")
-    print("Using MXNet Backend")
-    start = time.time()
+    print("Using Backend: ", K.backend())
     keras_sparse_model.run_benchmark(train_data=sparse.csr_matrix(train_data.asnumpy()),
                                      train_label=sparse.csr_matrix(train_label.asnumpy()),
                                      eval_data=sparse.csr_matrix(eval_data.asnumpy()),
                                      eval_label=sparse.csr_matrix(eval_label.asnumpy()),
                                      batch_size=batch_size,
                                      epochs=epochs,
-                                     start=start,
-                                     is_sparse=True)
+                                     start=time.time())
 
-    os.environ['KERAS_BACKEND'] = 'tensorflow'
-    print("Running Keras benchmark script on sparse data")
-    print("Using Tensorflow Backend")
-    start = time.time()
-    keras_sparse_model.run_benchmark(train_data=sparse.csr_matrix(train_data.asnumpy()),
-                                     train_label=sparse.csr_matrix(train_label.asnumpy()),
-                                     eval_data=sparse.csr_matrix(eval_data.asnumpy()),
-                                     eval_label=sparse.csr_matrix(eval_label.asnumpy()),
-                                     batch_size=batch_size,
-                                     epochs=epochs,
-                                     start=start,
-                                     is_sparse=True)
-
-    start = time.time()
     print("Running MXNet benchmark script on sparse data")
     mxnet_sparse_model.run_benchmark(train_data=train_data,
                                      train_label=train_label,
@@ -67,57 +48,14 @@ def invoke_benchmark(batch_size, epochs):
                                      eval_label=eval_label,
                                      batch_size=batch_size,
                                      epochs=epochs,
-                                     start=start,
-                                     is_sparse=True)
-
-    train_data = train_data.tostype('default')
-    train_label = train_label.tostype('default')
-    eval_label = eval_label.tostype('default')
-
-    os.environ['KERAS_BACKEND'] = 'mxnet'
-    print("Running Keras benchmark script on dense data")
-    print("Using backend: ", K.backend())
-    start = time.time()
-    keras_sparse_model.run_benchmark(train_data=train_data.asnumpy(),
-                                     train_label=train_label.asnumpy(),
-                                     eval_data=eval_data.asnumpy(),
-                                     eval_label=eval_label.asnumpy(),
-                                     batch_size=batch_size,
-                                     epochs=epochs,
-                                     start=start,
-                                     is_sparse=False)
-
-    os.environ['KERAS_BACKEND'] = 'tensorflow'
-    print("Running Keras benchmark script on dense data")
-    print("Using backend: ", K.backend())
-    start = time.time()
-    keras_sparse_model.run_benchmark(train_data=train_data.asnumpy(),
-                                     train_label=train_label.asnumpy(),
-                                     eval_data=eval_data.asnumpy(),
-                                     eval_label=eval_label.asnumpy(),
-                                     batch_size=batch_size,
-                                     epochs=epochs,
-                                     start=start,
-                                     is_sparse=False)
-
-    start = time.time()
-    print("Running MXNet benchmark script on dense data")
-    print("Using backend: ", K.backend())
-    mxnet_sparse_model.run_benchmark(train_data=train_data,
-                                     train_label=train_label,
-                                     eval_data=eval_data,
-                                     eval_label=eval_label,
-                                     batch_size=batch_size,
-                                     epochs=epochs,
-                                     start=start,
-                                     is_sparse=False)
+                                     start=time.time())
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch", default=128,
                         help="Batch of data to be processed for training")
-    parser.add_argument("--epochs", default=1000,
+    parser.add_argument("--epochs", default=25,
                         help="Number of epochs to train the model on. Set epochs>=1000 for the best results")
     args = parser.parse_args()
 

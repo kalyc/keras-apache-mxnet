@@ -301,10 +301,8 @@ def validate_file(fpath, file_hash, algorithm='auto', chunk_size=65535):
 
 
 def prepare_sliced_sparse_data(data, batch_size):
-    index = np.arange(np.shape(data)[0])
-    np.random.shuffle(index)
-    n = math.floor(data.shape[0] / batch_size)
-    return data[:n*batch_size]
+    n = int(math.floor(data.shape[0] / batch_size))
+    return data[:n * batch_size]
 
 
 class Sequence(object):

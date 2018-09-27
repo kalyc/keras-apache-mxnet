@@ -9,31 +9,24 @@
 | Dataset          | Synthetic(Randomly generated)                                |
 | :--------------- | :----------------------------------------------------------- |
 | Keras            | v2.2.2                                                      |
-| TensorFlow       | v1.9.0                                                      |
-| MXNet            | v1.2.1                                                       |
+| TensorFlow       | v1.10.0                                                      |
+| MXNet            | v1.3.0                                                      |
 
 
 ### Results 
-| Instance Type | GPUs  | Batch Size  | MXNet (Time/Epoch) | Keras-TensorFlow (Time/Epoch)  |
-|-----|-----|-----|----- |-----|
-|  C5.18X Large |   0  | 16  | 51.15 sec | 71.85 sec |
-|  C5.18X Large |   0  | 32 | 20.82 sec | 54.31 sec |
-|  C5.18X Large |   0  | 64  | 13.13 sec | 19.20 sec |
-|  C5.18X Large |   0  | 128  | 5.72 sec | 9.86 sec |
-
-### Results 
-| Instance Type | GPUs  | Batch Size  | MXNet (Time/Epoch) | Keras-MXNet (Time/Epoch)| Keras-TensorFlow (Time/Epoch)  |
-|-----|-----|-----|Sparse|Sparse| Sparse|
+##### Sparse data
+###### Using 25 epochs
+| Instance Type | GPUs  | Batch Size  | MXNet (Time/Epoch) | Keras-MXNet (Time/Epoch) | Keras-TensorFlow (Time/Epoch)  |
 |-----|-----|-----|-----|-----|-----|
-|  MacOS |   0  | 16  | 51.15 sec | 71.85 sec |
-|  MacOS |   0  | 32 | 20.82 sec | 54.31 sec |
-|  MacOS |   0  | 64  | 13.13 sec | 19.20 sec |
-|  MacOS |   0  | 128  | 5.72 sec | 9.86 sec |
+| C5.18XLarge |   0  | 16  | 52.89 sec | 334.32 sec | 237.28 sec |
+| C5.18XLarge |   0  | 32 | 27.54 sec | 177.99 sec | 124.59 sec |
+| C5.18XLarge |   0  | 64  | 13.78 sec | 85.22 sec | 60.86 sec |
+| C5.18XLarge |   0  | 128  | 6.49 sec | 42.45 sec |  31.09 se |
+
 
 ### Note
 For reproducing above results set seed to `7` by adding this line in the `run_sparse_benchmark` script - `np.random.seed(7)`
-
-Run the file as `python run_sparse_benchmark.py --batch=128 --epochs=1000`
+Run the file as `python run_sparse_benchmark.py`
 
 ### References
 MXNet supports sparse data in 2 NDArray formats - CSRNDArray and RowSparseNDArray which are defined in `mxnet.ndarray.sparse` package

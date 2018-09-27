@@ -6,21 +6,17 @@ import time
 import mxnet as mx
 
 
-def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, epochs, start, is_sparse=True):
+def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, epochs, start):
     train_iter = mx.io.NDArrayIter(train_data, train_label, batch_size, last_batch_handle='discard', label_name='label')
 
     eval_iter = mx.io.NDArrayIter(eval_data, eval_label, batch_size=batch_size,
                                   label_name='label', last_batch_handle='discard')
 
-    if is_sparse:
-        X = mx.sym.Variable('data', stype='csr')
-        weight = mx.symbol.Variable('weight', stype='row_sparse', shape=(train_data.shape[1], 1))
-    else:
-        X = mx.sym.Variable('data', stype='default')
-        weight = mx.symbol.Variable('weight', stype='default', shape=(train_data.shape[1], 1))
+    X = mx.sym.Variable('data', stype='csr')
+    weight = mx.symbol.Variable('weight', stype='row_sparse', shape=(train_data.shape[1], 1))
+    pred = mx.sym.sparse.dot(X, weight)
 
     Y = mx.symbol.Variable('label')
-    pred = mx.sym.sparse.dot(X, weight)
     lro = mx.sym.LinearRegressionOutput(data=pred, label=Y, name='lro')
 
     # Create module
@@ -50,10 +46,7 @@ def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, ep
         print("Epoch %d, Metric = %s" % (epoch, metric.get()))
 
     print("MXNet Sparse Benchmark Results")
-    if is_sparse:
-        print("Dataset: Synthetic Sparse Data")
-    else:
-        print("Dataset: Synthetic Dense Data")
+    print("Dataset: Synthetic Sparse Data")
     print("Batch Size")
     print(batch_size)
     print("Total Time")
