@@ -13,6 +13,7 @@ from ..legacy import interfaces
 
 py_all = all
 
+
 class Embedding(Layer):
     """Turns positive integers (indexes) into dense vectors of fixed size.
     eg. [[4], [20]] -> [[0.25, 0.1], [0.6, -0.2]]
@@ -79,6 +80,7 @@ class Embedding(Layer):
                  embeddings_constraint=None,
                  mask_zero=False,
                  input_length=None,
+                 sparse_grad=False,
                  **kwargs):
         if 'input_shape' not in kwargs:
             if input_length:
@@ -95,6 +97,7 @@ class Embedding(Layer):
         self.mask_zero = mask_zero
         self.supports_masking = mask_zero
         self.input_length = input_length
+        self.sparse_grad = sparse_grad
 
     def build(self, input_shape):
         self.embeddings = self.add_weight(
@@ -140,7 +143,7 @@ class Embedding(Layer):
         # K.gather is not working with Embedding layer using MXNet backend
         # Refer to this issue: https://github.com/awslabs/keras-apache-mxnet/issues/63
         if K.backend() == "mxnet":
-            if py_all([K.is_sparse(x) for x in inputs]):
+            if self.sparse_grad:
                 out = K.embedding(inputs, self.embeddings, self.input_dim, self.output_dim, sparse_grad=True)
             else:
                 out = K.embedding(inputs, self.embeddings, self.input_dim, self.output_dim)
