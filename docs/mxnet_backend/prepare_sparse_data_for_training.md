@@ -24,7 +24,7 @@ data = np.array([1, 2, 3, 4, 5], dtype=float)
 x_train = scipy.sparse.coo_matrix((data, (row_ind, col_ind)))
 
 model.fit(x_train, y_train,
-          batch_size=2,
+          batch_size=3,
           epochs=epochs,
           verbose=1,
           validation_data=(x_test, y_test))
@@ -43,12 +43,13 @@ As MXNet sparse NDArray does not support reshape, we need to slice excess dimens
 x_train = data_utils.prepare_sliced_sparse_data(x_train, batch_size)
 ```
 
-This will reshape the training data into shape `(3,5)`
+This will slice the training data into shape `(3,5)`
 Now we can continue training the data without any issue
 
-To summarize, all you have to do is to call the `keras.data_utils.prepare_sliced_sparse_data()` and pass the 
+To summarize, all you have to do is to call `keras.data_utils.prepare_sliced_sparse_data()` and pass the 
 sparse training data
 
 
 ## References
 1. [MXNet Sparse NDArray Implementation](https://mxnet.incubator.apache.org/_modules/mxnet/ndarray/sparse.html)
+2. Refer sparse linear regression model for further details 
