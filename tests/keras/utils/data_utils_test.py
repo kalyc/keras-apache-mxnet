@@ -10,13 +10,13 @@ import multiprocessing as mp
 import numpy as np
 import pytest
 import six
+from scipy import sparse
 from six.moves.urllib.parse import urljoin
 from six.moves.urllib.request import pathname2url
 
 from keras.utils import GeneratorEnqueuer
 from keras.utils import OrderedEnqueuer
 from keras.utils import Sequence
-import mxnet as mx
 from keras.utils.data_utils import _hash_file
 from keras.utils.data_utils import get_file
 from keras.utils.data_utils import validate_file
@@ -370,9 +370,20 @@ def test_finite_generator_enqueuer_processes():
     enqueuer.stop()
 
 
+def _generate_test_data():
+    row_ind = np.array([0, 1, 1, 3, 4])
+    col_ind = np.array([0, 2, 4, 3, 4])
+    data = np.array([1, 2, 3, 4, 5], dtype=float)
+    return sparse.coo_matrix((data, (row_ind, col_ind)))
+
+
 def test_prepare_sparse_sliced_data():
-    test_train_data = mx.test_utils.rand_ndarray((10, 10), 'csr', 0.01)
+    row_ind = np.array([0, 1, 1, 3, 4])
+    col_ind = np.array([0, 2, 4, 3, 4])
+    data = np.array([1, 2, 3, 4, 5], dtype=float)
+    test_train_data = sparse.coo_matrix((data, (row_ind, col_ind)))
     batch_size = 3
+
     result = prepare_sliced_sparse_data(test_train_data, batch_size)
 
     assert int(result.shape[0]) % batch_size == 0
@@ -388,9 +399,12 @@ def test_prepare_sparse_sliced_data_no_input():
 
 
 def test_prepare_sparse_sliced_data_incorrect_dimensions():
-    test_train_data = mx.test_utils.rand_ndarray((2, 2), 'csr', 0.01)
-    batch_size = 5
+    row_ind = np.array([0, 1])
+    col_ind = np.array([0, 2])
+    data = np.array([1, 2], dtype=float)
+    test_train_data = sparse.coo_matrix((data, (row_ind, col_ind)))
 
+    batch_size = 5
     with pytest.warns(UserWarning):  # Warning is thrown when data size is smaller than batch size
         result = prepare_sliced_sparse_data(test_train_data, batch_size)
 
