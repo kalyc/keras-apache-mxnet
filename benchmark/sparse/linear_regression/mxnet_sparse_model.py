@@ -2,6 +2,7 @@
 Linear Regression model with sparse synthetic data for MXNet
 https://mxnet.incubator.apache.org/tutorials/sparse/train.html
 """
+from __future__ import print_function
 
 import time
 import mxnet as mx

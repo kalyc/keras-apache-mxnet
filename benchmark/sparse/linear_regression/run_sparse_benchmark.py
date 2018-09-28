@@ -1,6 +1,7 @@
 """
 Prepare data for running benchmark on sparse linear regression model
 """
+from __future__ import print_function
 
 import argparse
 import time
