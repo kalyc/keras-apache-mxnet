@@ -1,5 +1,6 @@
 """
 Linear Regression model with sparse synthetic data for MXNet
+https://mxnet.incubator.apache.org/tutorials/sparse/train.html
 """
 
 import time
@@ -14,7 +15,8 @@ def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, ep
 
     X = mx.sym.Variable('data', stype='csr')
     weight = mx.symbol.Variable('weight', stype='row_sparse', shape=(train_data.shape[1], 1))
-    pred = mx.sym.sparse.dot(X, weight)
+    bias = mx.symbol.Variable("bias", shape=(1,))
+    pred = mx.symbol.broadcast_add(mx.sym.sparse.dot(X, weight), bias)
 
     Y = mx.symbol.Variable('label')
     lro = mx.sym.LinearRegressionOutput(data=pred, label=Y, name='lro')

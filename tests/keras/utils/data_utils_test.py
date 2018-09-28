@@ -16,9 +16,11 @@ from six.moves.urllib.request import pathname2url
 from keras.utils import GeneratorEnqueuer
 from keras.utils import OrderedEnqueuer
 from keras.utils import Sequence
+import mxnet as mx
 from keras.utils.data_utils import _hash_file
 from keras.utils.data_utils import get_file
 from keras.utils.data_utils import validate_file
+from keras.utils.data_utils import prepare_sliced_sparse_data
 
 if sys.version_info < (3,):
     def next(x):
@@ -366,6 +368,34 @@ def test_finite_generator_enqueuer_processes():
     assert acc != list(range(100)), ('Order was keep in GeneratorEnqueuer '
                                      'with processes')
     enqueuer.stop()
+
+
+def test_prepare_sparse_sliced_data():
+    test_train_data = mx.test_utils.rand_ndarray((10, 10), 'csr', 0.01)
+    batch_size = 3
+    result = prepare_sliced_sparse_data(test_train_data, batch_size)
+
+    assert int(result.shape[0]) % batch_size == 0
+
+
+def test_prepare_sparse_sliced_data_no_input():
+    test_train_data = None
+    batch_size = 3
+
+    with pytest.warns(UserWarning):  # Warning is thrown when data is None
+        result = prepare_sliced_sparse_data(test_train_data, batch_size)
+        assert result is None
+
+
+def test_prepare_sparse_sliced_data_incorrect_dimensions():
+    test_train_data = mx.test_utils.rand_ndarray((2, 2), 'csr', 0.01)
+    batch_size = 5
+
+    with pytest.warns(UserWarning):  # Warning is thrown when data size is smaller than batch size
+        result = prepare_sliced_sparse_data(test_train_data, batch_size)
+
+        assert result.shape[0] == test_train_data.shape[0]
+        assert result.shape[1] == test_train_data.shape[1]
 
 
 if __name__ == '__main__':

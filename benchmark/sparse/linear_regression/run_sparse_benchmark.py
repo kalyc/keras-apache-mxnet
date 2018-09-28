@@ -4,7 +4,6 @@ Prepare data for running benchmark on sparse linear regression model
 
 import argparse
 import time
-import numpy as np
 
 import keras_sparse_model
 import mxnet as mx
@@ -16,10 +15,7 @@ from keras.utils.data_utils import prepare_sliced_sparse_data
 
 
 def invoke_benchmark(batch_size, epochs):
-    # Fix seed for randomness
-    np.random.rand(7)
-
-    feature_dimension = 100
+    feature_dimension = 1000
     train_data = mx.test_utils.rand_ndarray((100000, feature_dimension), 'csr', 0.01)
     target_weight = mx.nd.arange(1, feature_dimension + 1).reshape((feature_dimension, 1))
     train_label = mx.nd.dot(train_data, target_weight)

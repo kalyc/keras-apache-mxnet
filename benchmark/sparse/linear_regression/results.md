@@ -16,12 +16,13 @@
 ### Results 
 ##### Sparse data
 ###### Using 25 epochs
+###### Benchmark results calculated using an average of 5 runs
 | Instance Type | GPUs  | Batch Size  | MXNet (Time/Epoch) | Keras-MXNet (Time/Epoch) | Keras-TensorFlow (Time/Epoch)  |
 |-----|-----|-----|-----|-----|-----|
-| C5.18XLarge |   0  | 16  | 52.89 sec | 334.32 sec | 237.28 sec |
-| C5.18XLarge |   0  | 32 | 27.54 sec | 177.99 sec | 124.59 sec |
-| C5.18XLarge |   0  | 64  | 13.78 sec | 85.22 sec | 60.86 sec |
-| C5.18XLarge |   0  | 128  | 6.49 sec | 42.45 sec |  31.09 se |
+| C5.18XLarge |   0  | 16  | 4.97 sec | 31.02 sec | 21.05 sec |
+| C5.18XLarge |   0  | 32 | 2.48 sec | 15.36 sec | 10.68 sec |
+| C5.18XLarge |   0  | 64  | 1.36 sec | 8.12 sec | 5.41 sec |
+| C5.18XLarge |   0  | 128  | 0.69 sec | 3.89 sec |  2.86 sec |
 
 
 ### Note
