@@ -52,4 +52,4 @@ sparse training data
 
 ## References
 1. [MXNet Sparse NDArray Implementation](https://mxnet.incubator.apache.org/_modules/mxnet/ndarray/sparse.html)
-2. Refer sparse linear regression model for further details 
+2. [Refer sparse linear regression model for further details](https://github.com/awslabs/keras-apache-mxnet/tree/master/benchmark/sparse/linear_regression)
