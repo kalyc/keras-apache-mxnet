@@ -1211,7 +1211,7 @@ def embedding(data, weight, input_dim, output_dim, sparse_grad=False):
     if isinstance(weight, KerasSymbol):
         weight = weight.symbol
     if sparse_grad:
-        # Use mxnet.sym.contrib.SparseEmbedding API - https://mxnet.apache.org/api/python/symbol/contrib.html
+        # Refer https://mxnet.incubator.apache.org/api/python/symbol/sparse.html#mxnet.symbol.sparse.Embedding
         return KerasSymbol(mx.sym.Embedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim,
                                             sparse_grad=True))
     return KerasSymbol(mx.sym.Embedding(data, weight=weight, input_dim=input_dim, output_dim=output_dim))

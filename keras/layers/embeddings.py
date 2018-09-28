@@ -59,6 +59,10 @@ class Embedding(Layer):
             This argument is required if you are going to connect
             `Flatten` then `Dense` layers upstream
             (without it, the shape of the dense outputs cannot be computed).
+        sparse_grad: Used only for MXNet backend
+            When set to True, the gradients’s storage type is row_sparse.
+            Compute row sparse gradient in the backward calculation.
+            Refer to: https://mxnet.incubator.apache.org/api/python/symbol/sparse.html#mxnet.symbol.sparse.Embedding
 
     # Input shape
         2D tensor with shape: `(batch_size, sequence_length)`.
@@ -142,7 +146,7 @@ class Embedding(Layer):
         # Refer to this issue: https://github.com/awslabs/keras-apache-mxnet/issues/63
         if K.backend() == "mxnet":
             if self.sparse_grad:
-                out = K.embedding(inputs, self.embeddings, self.input_dim, self.output_dim, sparse_grad=True)
+                out = K.embedding(inputs, self.embeddings, self.input_dim, self.output_dim, sparse_grad=self.sparse_grad)
             else:
                 out = K.embedding(inputs, self.embeddings, self.input_dim, self.output_dim)
         else:
