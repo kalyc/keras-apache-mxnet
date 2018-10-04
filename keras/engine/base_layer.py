@@ -226,7 +226,8 @@ class Layer(object):
                    initializer=None,
                    regularizer=None,
                    trainable=True,
-                   constraint=None):
+                   constraint=None,
+                   sparse=False):
         """Adds a weight variable to the layer.
 
         # Arguments

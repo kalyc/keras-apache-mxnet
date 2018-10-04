@@ -360,7 +360,7 @@ def to_dense(tensor):
 name_scope = tf.name_scope
 
 
-def variable(value, dtype=None, name=None, constraint=None):
+def variable(value, dtype=None, name=None, constraint=None, sparse=False):
     """Instantiates a variable and returns it.
 
     # Arguments
@@ -369,6 +369,7 @@ def variable(value, dtype=None, name=None, constraint=None):
         name: Optional name string for the tensor.
         constraint: Optional projection function to be
             applied to the variable after an optimizer update.
+        sparse: Parameter used for MXNet backend to create sparse variable
 
     # Returns
         A variable instance (with Keras metadata included).
@@ -389,7 +390,7 @@ def variable(value, dtype=None, name=None, constraint=None):
     """
     if dtype is None:
         dtype = floatx()
-    if hasattr(value, 'tocoo'):
+    if hasattr(value, 'tocoo') or sparse:
         sparse_coo = value.tocoo()
         indices = np.concatenate((np.expand_dims(sparse_coo.row, 1),
                                   np.expand_dims(sparse_coo.col, 1)), 1)
