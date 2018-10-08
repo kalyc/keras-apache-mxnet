@@ -5,8 +5,8 @@ from __future__ import print_function
 
 import time
 
-from keras import Model, Sequential
-from keras.layers import Dense, Input, Activation
+from keras import Model
+from keras.layers import Dense, Input
 from keras.optimizers import SGD
 from keras import backend as K
 from keras.utils import multi_gpu_model
@@ -17,7 +17,7 @@ def _validate_backend():
         raise NotImplementedError('This benchmark script only supports MXNet and TensorFlow backend')
 
 
-def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, epochs, gpus, start):
+def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, epochs, gpus):
     _validate_backend()
 
     inputs = Input(batch_shape=(None, train_data.shape[1]), dtype='float32', sparse=True)

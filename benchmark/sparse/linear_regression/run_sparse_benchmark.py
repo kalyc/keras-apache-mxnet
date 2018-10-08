@@ -36,15 +36,6 @@ def invoke_benchmark(batch_size, epochs, gpus):
                                      epochs=epochs,
                                      gpus=gpus)
 
-    print("Running MXNet benchmark script on sparse data")
-    mxnet_sparse_model.run_benchmark(train_data=train_data,
-                                     train_label=train_label,
-                                     eval_data=eval_data,
-                                     eval_label=eval_label,
-                                     batch_size=batch_size,
-                                     epochs=epochs,
-                                     gpus=gpus)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
