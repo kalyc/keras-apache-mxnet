@@ -77,7 +77,7 @@
 | P3.8XLarge |  4  | 1024 | 9 | Not supported
 
 ### Note
-For reproducing above results set seed to `7` by adding this line in the `run_sparse_benchmark` script - `np.random.seed(7)`
+For reproducing above results start time before invoking model.fit()
 Run the file as `python run_sparse_benchmark.py`
 
 ### References

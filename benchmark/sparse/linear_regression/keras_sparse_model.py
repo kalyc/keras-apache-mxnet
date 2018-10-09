@@ -32,11 +32,13 @@ def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, ep
 
     model.compile(loss='mse', optimizer=sgd, metrics=['accuracy'])
 
-    start = time.time()
     model.fit(train_data,
               train_label,
               epochs=epochs,
               batch_size=batch_size, verbose=1)
+
+    start = time.time()
+    model.predict(train_data, batch_size=batch_size)
 
     print("Keras Benchmark Results")
     print("Dataset: Synthetic Sparse Data")
