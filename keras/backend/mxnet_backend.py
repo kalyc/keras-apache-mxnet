@@ -264,7 +264,7 @@ def variable(value, dtype=None, name=None, constraint=None, sparse_weight=False)
         ret.bind(v)
         return ret
     elif sparse_weight:
-        v = mx.ndarray.sparse.cast_storage(mx.nd.array(value), 'row_sparse')
+        v = mx.nd.array(value).tostype('row_sparse')
         name = _prepare_name(name, 'variable')
         ret = _keras_variable(name, v.shape, v.dtype, 'row_sparse', is_vector)
         ret._keras_shape = value.shape
@@ -5368,7 +5368,7 @@ def get_model():
             for x in self._arg_names:
                 if x in bind_values:
                     if is_sparse(x):
-                        self._args[x] = mx.ndarray.sparse.cast_storage(mx.nd.array(bind_values[x]), 'row_sparse')
+                        self._args[x] = mx.nd.array(bind_values[x]).tostype('row_sparse')
                     else:
                         self._args[x] = bind_values[x]
             self._auxs = {x: bind_values[x] for x in self._aux_names if x in bind_values}
