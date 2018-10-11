@@ -815,6 +815,8 @@ class Dense(Layer):
             (see [constraints](../constraints.md)).
         bias_constraint: Constraint function applied to the bias vector
             (see [constraints](../constraints.md)).
+        sparse_weight: Used with Dense layer for setting sparse weight 
+             during training only for MXNet backend.
 
     # Input shape
         nD tensor with shape: `(batch_size, ..., input_dim)`.
@@ -861,12 +863,19 @@ class Dense(Layer):
         assert len(input_shape) >= 2
         input_dim = input_shape[-1]
 
-        self.kernel = self.add_weight(shape=(input_dim, self.units),
-                                      initializer=self.kernel_initializer,
-                                      name='kernel',
-                                      regularizer=self.kernel_regularizer,
-                                      constraint=self.kernel_constraint,
-                                      sparse_weight=self.sparse_weight)
+        if K.backend() == 'mxnet':
+            self.kernel = self.add_weight(shape=(input_dim, self.units),
+                                          initializer=self.kernel_initializer,
+                                          name='kernel',
+                                          regularizer=self.kernel_regularizer,
+                                          constraint=self.kernel_constraint,
+                                          sparse_weight=self.sparse_weight)
+        else:
+            self.kernel = self.add_weight(shape=(input_dim, self.units),
+                                          initializer=self.kernel_initializer,
+                                          name='kernel',
+                                          regularizer=self.kernel_regularizer,
+                                          constraint=self.kernel_constraint)
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.units,),
                                         initializer=self.bias_initializer,

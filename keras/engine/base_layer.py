@@ -240,6 +240,8 @@ class Layer(object):
                 be trained via backprop or not (assuming
                 that the layer itself is also trainable).
             constraint: An optional Constraint instance.
+            sparse_weight: Used with MXNet backend for setting 
+                sparse weight during training. 
 
         # Returns
             The created weight variable.

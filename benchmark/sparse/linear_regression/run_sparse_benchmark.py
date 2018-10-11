@@ -27,11 +27,10 @@ def invoke_benchmark(batch_size, epochs, num_gpu, mode):
     eval_label = prepare_sliced_sparse_data(eval_label, batch_size)
 
     print("Running Keras benchmark script on sparse data")
-    print("Using Backend: ", K.backend())
     keras_sparse_model.run_benchmark(train_data=sparse.csr_matrix(train_data.asnumpy()),
-                                     train_label=sparse.csr_matrix(train_label.asnumpy()),
+                                     train_label=train_label.asnumpy(),
                                      eval_data=sparse.csr_matrix(eval_data.asnumpy()),
-                                     eval_label=sparse.csr_matrix(eval_label.asnumpy()),
+                                     eval_label=eval_label.asnumpy(),
                                      batch_size=batch_size,
                                      epochs=epochs,
                                      num_gpu=num_gpu,

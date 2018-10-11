@@ -21,10 +21,12 @@ def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, ep
     _validate_backend()
 
     inputs = Input(batch_shape=(None, train_data.shape[1]), dtype='float32', sparse=True)
+
     if K.backend() == 'mxnet':
         predictions = Dense(units=1, activation='linear', kernel_initializer='normal', sparse_weight=True)(inputs)
     else:
         predictions = Dense(units=1, activation='linear', kernel_initializer='normal')(inputs)
+
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
 
@@ -33,7 +35,9 @@ def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, ep
     if num_gpu > 1:
         model = multi_gpu_model(model, gpus=num_gpu)
 
-    model.compile(loss='mse', optimizer=sgd, metrics=['accuracy'])
+    model.compile(loss='mse',
+                  optimizer=sgd,
+                  metrics=['accuracy'])
 
     if mode == 'training':
         start = time.time()
@@ -41,11 +45,12 @@ def run_benchmark(train_data, train_label, eval_data, eval_label, batch_size, ep
     model.fit(train_data,
               train_label,
               epochs=epochs,
-              batch_size=batch_size, verbose=1)
+              batch_size=batch_size,
+              verbose=1)
 
     if mode == 'inference':
         start = time.time()
-        model.predict(train_data, batch_size=batch_size)
+        model.predict(train_data, batch_size)
 
     print("Keras Benchmark Results")
     print("Dataset: Synthetic Sparse Data")
