@@ -213,7 +213,7 @@ def to_dense(tensor):
         return tensor
 
 
-def variable(value, dtype=None, name=None, constraint=None, sparse=False):
+def variable(value, dtype=None, name=None, constraint=None, sparse_weight=False):
     """Instantiates a variable and returns it.
 
     # Arguments
@@ -222,8 +222,7 @@ def variable(value, dtype=None, name=None, constraint=None, sparse=False):
         name: Optional name string for the tensor.
         constraint: Optional projection function to be
             applied to the variable after an optimizer update.
-        sparse: Parameter used for MXNet backend to create sparse variable
-
+        sparse_weight: Parameter used for MXNet backend to use sparse weight for training.
     # Returns
         A variable instance (with Keras metadata included).
 
@@ -264,7 +263,7 @@ def variable(value, dtype=None, name=None, constraint=None, sparse=False):
         ret._uses_learning_phase = False
         ret.bind(v)
         return ret
-    elif sparse:
+    elif sparse_weight:
         v = mx.ndarray.sparse.cast_storage(mx.nd.array(value), 'row_sparse')
         name = _prepare_name(name, 'variable')
         ret = _keras_variable(name, v.shape, v.dtype, 'row_sparse', is_vector)

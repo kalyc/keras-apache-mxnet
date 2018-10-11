@@ -123,7 +123,7 @@ def test_functional_model_saving_with_sparse():
                   optimizer=optimizers.Adam(),
                   metrics=[metrics.categorical_accuracy])
     x = rand(1, 3, density=0.2, format='csr')
-    y = rand(1, 3, density=0.2, format='csr')
+    y = np.random.random((1, 3))
     model.train_on_batch(x, y)
 
     out = model.predict(x)
@@ -184,7 +184,7 @@ def test_model_saving_to_pre_created_h5py_file_with_sparse_input():
                   optimizer=optimizers.Adam(),
                   metrics=[metrics.categorical_accuracy])
     x = rand(1, 3, density=0.2, format='csr')
-    y = rand(1, 3, density=0.2, format='csr')
+    y = np.random.random((1, 3))
     model.train_on_batch(x, y)
 
     out = model.predict(x)
@@ -255,7 +255,7 @@ def test_model_saving_to_binary_stream_with_sparse_input():
                   optimizer=optimizers.Adam(),
                   metrics=[metrics.categorical_accuracy])
     x = rand(1, 3, density=0.2, format='csr')
-    y = rand(1, 3, density=0.2, format='csr')
+    y = np.random.random((1, 3))
     model.train_on_batch(x, y)
 
     out = model.predict(x)
@@ -995,7 +995,7 @@ def test_sequential_lstm_mxnet_model_saving_with_sparse_embedding():
 
     # Generate sparse random data
     x = rand(1000, maxlen, density=0.2, format='csr')
-    y = rand(1000, 128, density=0.2, format='csr')
+    y = np.random.random((1000, 128))
     print("X shape - ", x.shape)
     print("Y shape - ", y.shape)
     model.fit(x, y, batch_size=batch_size, epochs=2)
@@ -1055,7 +1055,7 @@ def test_sequential_mxnet_model_saving_with_sparse_input():
                   metrics=[metrics.categorical_accuracy])
 
     x = rand(1, 3, density=0.2, format='csr')
-    y = rand(1, 3, density=0.2, format='csr')
+    y = np.random.random((1, 3))
     model.train_on_batch(x, y)
 
     data_names, _ = save_mxnet_model(model, prefix='test', epoch=0)
@@ -1174,7 +1174,7 @@ def test_functional_model_get_mxnet_model_info_sparse_input():
                   optimizer=optimizers.Adam(),
                   metrics=[metrics.categorical_accuracy])
     x = rand(1, 3, density=0.2, format='csr')
-    y = rand(1, 3, density=0.2, format='csr')
+    y = np.random.random((1, 3))
     model.train_on_batch(x, y)
 
     data_names, data_shapes = K.get_mxnet_model_info(model)
