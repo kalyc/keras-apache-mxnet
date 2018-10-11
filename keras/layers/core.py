@@ -815,8 +815,8 @@ class Dense(Layer):
             (see [constraints](../constraints.md)).
         bias_constraint: Constraint function applied to the bias vector
             (see [constraints](../constraints.md)).
-        sparse_weight: Used with Dense layer for setting sparse weight 
-             during training only for MXNet backend.
+        sparse_weight: Used with Dense layer for setting sparse weight
+            during training only for MXNet backend.
 
     # Input shape
         nD tensor with shape: `(batch_size, ..., input_dim)`.

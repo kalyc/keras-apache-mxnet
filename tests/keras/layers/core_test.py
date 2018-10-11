@@ -291,7 +291,7 @@ def test_lambda_output_shape():
                     reason="Sparse weight with dense layer supported only with MXNet backend.")
 def test_dense_with_sparse_weight():
     layer_test(layers.Dense,
-               kwargs={'units': 3, 'sparse_weight':True},
+               kwargs={'units': 3, 'sparse_weight': True},
                input_shape=(3, 2),
                )
 
