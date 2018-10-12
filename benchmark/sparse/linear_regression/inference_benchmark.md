@@ -74,11 +74,11 @@
 ##### Memory consumed
 | Instance Type | GPUs  | Batch Size | Keras-MXNet (GPU Memory (MB)) | Keras-TensorFlow (GPU Memory (MB))  |
 |-----|-----|-----|-----|-----|
-| P3.8XLarge |   1  | 64  | 966.7 | 3322.9
-| P3.8XLarge |   1  | 128 | 970.9 | 3053.4
+| P3.8XLarge |   1  | 64  | 966.7 | 16135.5
+| P3.8XLarge |   1  | 128 | 970.9 | 16135.5
 | P3.8XLarge |   1  | 256 | 973.1 | 16135.5
 | P3.8XLarge |   1  | 512 | 994.1 | 16135.5
-| P3.8XLarge |   1  | 1024 | 987.7 | 2908.8
+| P3.8XLarge |   1  | 1024 | 987.7 | 16135.5
 
 ### Note
 For reproducing above results start time before invoking model.predict()
