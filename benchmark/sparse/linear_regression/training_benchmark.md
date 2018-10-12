@@ -27,7 +27,7 @@
 | C5.8XLarge |   0  | 512 | 89.3 sec | 83.8 sec 
 | C5.8XLarge |   0  | 1024 | 50.5 sec | 48.6 sec
 
-#### Memory consumed
+#### CPU Memory Consumed
 | Instance Type | GPUs  | Batch Size | Keras-MXNet (CPU Memory (MB)) | Keras-TensorFlow (CPU Memory (MB))  |
 |-----|-----|-----|-----|-----|
 | C5.8XLarge |   0  | 64  | 1331.3 | 1578.2 |
@@ -57,7 +57,7 @@
 | P3.8XLarge |   1  | 512 | 12.4 sec | 19.0 sec
 | P3.8XLarge |   1  | 1024 | 9.1 sec | 18.8 sec
 
-##### Memory utilization
+##### GPU Utilization
 | Instance Type | GPUs  | Batch Size | Keras-MXNet (GPU Utilization %) | Keras-TensorFlow (GPU Utilization %)  |
 |-----|-----|-----|-----|-----|
 | P3.8XLarge |   1  | 64  | 10 | 9
@@ -66,7 +66,7 @@
 | P3.8XLarge |   1  | 512 | 9 | 8
 | P3.8XLarge |   1  | 1024 | 8 | 8
 
-##### Memory consumed
+##### GPU Memory Consumed
 | Instance Type | GPUs  | Batch Size | Keras-MXNet (GPU Memory (MB)) | Keras-TensorFlow (GPU Memory (MB))  |
 |-----|-----|-----|-----|-----|
 | P3.8XLarge |   1  | 64  | 966.7 | 16135.5
@@ -83,19 +83,19 @@
 | P3.8XLarge |   2  | 512 | 19 sec | Not supported
 | P3.8XLarge |   4  | 1024  | 21.6 sec | Not supported
 
-##### Memory utilization
-###### Reporting total memory utilization by all GPUs
+##### GPU Utilization
+###### Reporting average GPU % utilization
 | Instance Type | GPUs  | Batch Size | Keras-MXNet (GPU Utilization %) | Keras-TensorFlow (GPU Utilization %)  |
 |-----|-----|-----|-----|-----|
-| P3.8XLarge |   2  | 512  | 11 | Not supported
-| P3.8XLarge |   4  | 128 | 12 | Not supported
+| P3.8XLarge |   2  | 512  | 5 | Not supported
+| P3.8XLarge |   4  | 128 | 6 | Not supported
 
-##### Memory consumed
-###### Reporting total memory consumed by all GPUs
+##### GPU Memory Consumed
+###### Reporting average memory consumed
 | Instance Type | GPUs  | Batch Size | Keras-MXNet (GPU Memory (MB)) | Keras-TensorFlow (GPU Memory (MB))  |
 |-----|-----|-----|-----|-----|
-| P3.8XLarge |  2  | 512 | 1944.1  | Not supported
-| P3.8XLarge |  4  | 1024 | 3879.7 | Not supported
+| P3.8XLarge |  2  | 512 | 972.1  | Not supported
+| P3.8XLarge |  4  | 1024 | 969.9 | Not supported
 
 ### Note
 For reproducing above results start time before invoking model.fit()
