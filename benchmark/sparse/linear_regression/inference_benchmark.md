@@ -25,15 +25,6 @@
 | C5.8XLarge |   0  | 512 | 8.3 sec | 8.8 sec 
 | C5.8XLarge |   0  | 1024 | 4.3 sec | 4.4 sec
 
-#### Memory utilization
-| Instance Type | GPUs  | Batch Size | Keras-MXNet (Mem %) | Keras-TensorFlow (Mem %)  |
-|-----|-----|-----|-----|-----|
-| C5.8XLarge |   0  | 64  | 0.4 | 0.5 |
-| C5.8XLarge |   0  | 128 | 0.4 | 0.5 | 
-| C5.8XLarge |   0  | 256 | 0.4 | 0.5  |
-| C5.8XLarge |   0  | 512 | 0.4 | 0.5 |
-| C5.8XLarge |   0  | 1024 | 0.4 | 0.5 |
-
 #### Memory consumed
 | Instance Type | GPUs  | Batch Size | Keras-MXNet (MB) | Keras-TensorFlow (MB)  |
 |-----|-----|-----|-----|-----|
